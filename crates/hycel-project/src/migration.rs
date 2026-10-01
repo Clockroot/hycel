@@ -400,7 +400,7 @@ mod tests {
             parsed.entities()[0].id(),
             "20000000-0000-4000-8000-000000000001"
         );
-        assert!(parsed.entities()[0].tags().is_empty());
+        assert_eq!(parsed.entities()[0].tags(), &[] as &[String]);
         assert_eq!(
             parsed.entities()[0].transform().scale_milli(),
             [1_000, 1_000]
@@ -534,6 +534,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::permissions_set_readonly_false)] // Non-Unix cleanup only clears the test's readonly attribute.
     fn migration_refuses_read_only_destination_without_changing_it() {
         let directory = test_directory("migration-read-only");
         let scene_path = directory.join("room.json");
