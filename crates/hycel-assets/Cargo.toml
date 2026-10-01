@@ -1,0 +1,16 @@
+[package]
+name = "hycel-assets"
+description = "Content identity, import fingerprints, and dependency reports for Hycel projects"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+hycel-project = { path = "../hycel-project", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+
+[lints]
+workspace = true

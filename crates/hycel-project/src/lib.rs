@@ -1064,6 +1064,29 @@ impl SceneDocument {
     pub fn entities(&self) -> &[SceneEntity] {
         &self.entities
     }
+
+    /// Stable resource UUIDs referenced by registered component fields.
+    ///
+    /// Call this only after project reference validation; malformed or missing
+    /// reference values are omitted here and reported by
+    /// [`validate_project_documents`].
+    #[must_use]
+    pub fn referenced_resource_ids(&self, registry: &ComponentRegistry) -> BTreeSet<String> {
+        let mut references = BTreeSet::new();
+        for entity in &self.entities {
+            for component in &entity.components {
+                let Some(definition) = registry.definitions.get(&component.component_type) else {
+                    continue;
+                };
+                for field in &definition.resource_reference_fields {
+                    if let Some(resource_id) = component.data.get(field).and_then(Value::as_str) {
+                        references.insert(resource_id.to_owned());
+                    }
+                }
+            }
+        }
+        references
+    }
 }
 
 impl SceneEntity {
@@ -1610,6 +1633,12 @@ mod tests {
             &resource_registry,
         )
         .unwrap();
+        assert_eq!(
+            scene.referenced_resource_ids(&registry),
+            ["30000000-0000-4000-8000-000000000001".to_owned()]
+                .into_iter()
+                .collect()
+        );
         let scenes = vec![("scenes/room.json".to_owned(), scene.clone())];
         let resources = vec![("assets/player.hycel.json".to_owned(), resource)];
         assert!(validate_project_documents(&scenes, &resources, &registry).is_ok());

@@ -23,11 +23,11 @@ Lower layers never depend on editor UI, agent protocol, or a particular host OS.
 
 ## Workspace direction
 
-Planned crates (split only when boundaries are real; avoid premature micro-crates):
+Workspace crate boundaries (split only when boundaries are real; avoid premature micro-crates):
 
 - `hycel-core`: deterministic world/simulation types, fixed-step schedule, stable IDs, math-facing abstractions. No OS, renderer, wall clock, or I/O.
 - `hycel-project`: project manifest, versioned scene/resource schemas, bounded strict parsing, structured validation diagnostics, and explicit per-file scene migration/rollback.
-- `hycel-assets`: asset identity, import metadata, dependency graph, content hashing, cache.
+- `hycel-assets`: asset identity, import metadata, dependency reports, and content/import fingerprinting. Actual format decoders and transactional import execution remain future work.
 - `hycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
 - `hycel-render`: 2D renderer behind a backend boundary; initial candidate `wgpu`, pending a renderer spike and explicit backend decision.
 - `hycel-platform`: window, files, clock, input, and OS integration adapters.
@@ -79,6 +79,6 @@ The planned 1.0 OS floors, Rust triples, and graphics backend mapping are record
 
 - Invalid project content returns structured diagnostics; it does not panic.
 - Runtime user/game errors are reported with system, scene, entity, and tick context where available.
-- Asset imports are content-addressed and transactional; interrupted imports leave the prior valid asset intact.
+- Asset identity and deterministic reimport inputs are implemented; the future import executor must stage outputs transactionally and leave the prior valid cache intact on failure.
 - Engine-owned background work has explicit cancellation and bounded resource use.
 - Crash reports are opt-in and local by default; no project content is uploaded implicitly.

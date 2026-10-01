@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/hycel-assets",
     "crates/hycel-core",
     "crates/hycel-project",
     "crates/hycel-demo",

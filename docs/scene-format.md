@@ -91,7 +91,7 @@ A resource descriptor is stored next to its authored/imported asset with a `.hyc
 - `import` is a JSON object validated by the registered importer for `kind`. Unknown settings for a known importer are errors unless that importer schema explicitly declares an extension field.
 - Source bytes are content-hashed by the asset pipeline. The UUID expresses project identity; content hashes express change detection and do not replace it.
 
-Descriptor suffix/path naming and source hashing are implemented with Phase 3.5. Validation diagnostics must identify the file and JSON path and must not mutate the project. Generated import products live only in `.hycel/` or `build/`, never over authored sources.
+Content hashing, versioned import provenance/fingerprints, deterministic reimport decisions, and direct dependency reporting are implemented in [`asset-pipeline.md`](asset-pipeline.md) and `hycel-assets`. Automatic descriptor discovery, format decoders, and import execution are not implemented yet. Validation diagnostics must identify the file and JSON path and must not mutate the project. Generated import products live only in `.hycel/` or `build/`, never over authored sources.
 
 ## Ordering, defaults, and evolution
 
