@@ -215,6 +215,11 @@ impl ApplicationHandler for Probe {
         };
         if let Err(error) = self.create_renderer(window) {
             self.fail(event_loop, error);
+        } else {
+            // Start the smoke window only after blocking adapter/device setup;
+            // otherwise slow Windows software adapters can consume the entire
+            // timeout before the first redraw is ever requested.
+            self.started_at = Instant::now();
         }
     }
 
