@@ -16,9 +16,11 @@ Game projects should be inspectable and testable without clicking through an edi
 
 ## Current state
 
-- `mycel-core`: fixed-rate integer simulation clock; no platform APIs or third-party dependencies.
+- `mycel-core`: fixed-rate integer simulation clock and deterministic world/schedule/replay primitives; no platform APIs.
+- `mycel-project`: bounded TOML/JSON manifest and scene/resource parsing with strict fields, path checks, and stable diagnostics; project formats are still experimental.
 - `mycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
+- Project and scene schema proposals: [`docs/project-format.md`](docs/project-format.md) and [`docs/scene-format.md`](docs/scene-format.md), with parser implementation in `mycel-project`.
 - Design and release requirements: [`docs/`](docs/).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).

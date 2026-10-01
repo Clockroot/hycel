@@ -26,7 +26,7 @@ Lower layers never depend on editor UI, agent protocol, or a particular host OS.
 Planned crates (split only when boundaries are real; avoid premature micro-crates):
 
 - `mycel-core`: deterministic world/simulation types, fixed-step schedule, stable IDs, math-facing abstractions. No OS, renderer, wall clock, or I/O.
-- `mycel-project`: project manifest, versioned scene/resource schemas, validation, migration.
+- `mycel-project`: project manifest, versioned scene/resource schemas, bounded strict parsing, structured validation diagnostics, and (planned) migration.
 - `mycel-assets`: asset identity, import metadata, dependency graph, content hashing, cache.
 - `mycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
 - `mycel-render`: 2D renderer behind a backend boundary; initial candidate `wgpu`, pending a renderer spike and explicit backend decision.
@@ -67,7 +67,7 @@ Authoritative 2D values use `SimScalar` in milli-world-units, with +X right and 
 
 ## Project format and API stability
 
-Project files are text-first, UTF-8, schema-versioned, and human diffable. The initial project layout uses a TOML `mycel.toml` manifest and strict JSON scene/resource documents as specified in [`project-format.md`](project-format.md). Every serialized format has a version and validation errors include file, path, and actionable explanation. Migrations are explicit, transactional, and preserve a backup. Unknown fields must not be silently discarded. Runtime/agent commands are versioned separately from file schemas.
+Project files are text-first, UTF-8, schema-versioned, and human diffable. The initial project layout uses a TOML `mycel.toml` manifest and strict JSON scene/resource documents as specified in [`project-format.md`](project-format.md) and [`scene-format.md`](scene-format.md). The `mycel-project` crate bounds parser input, rejects unknown fields, and returns stable diagnostic codes with file/path context. Every serialized format has a version and validation errors include actionable explanation. Migrations are explicit, transactional, and preserve a backup. Unknown fields must not be silently discarded. Runtime/agent commands are versioned separately from file schemas.
 
 Game logic may initially use Rust modules compiled into the game. Do not make dynamic scripting a release blocker. Evaluate a scripting language only after the 2D vertical slice, with sandboxing, deterministic behavior, error diagnostics, and editor tooling as acceptance criteria.
 

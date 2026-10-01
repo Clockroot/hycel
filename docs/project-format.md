@@ -51,7 +51,11 @@ debug_info = false
 - `build.default_profile` names a profile present in `build.profiles`. Profile identifiers use lowercase ASCII letters, digits, and hyphens, beginning with a letter. `optimization` is an integer from 0 through 3; `debug_info` is a boolean. The built-in profile names `development` and `release` have no special parser semantics; the example merely provides conventional defaults.
 - Content roots are fixed by this schema: `src/`, `assets/`, and `scenes/`; generated output is fixed to `build/` and `.mycel/`. No manifest field can override these paths in schema 1.
 
-Unknown fields, duplicate keys, malformed values, and invalid paths must produce actionable diagnostics; they must not be ignored. Manifest parse limits and diagnostic codes are defined with the validation implementation in Phase 3.3. Project and scene schema versions are independent of the engine's SemVer compatibility range.
+Unknown fields, duplicate keys, malformed values, and invalid paths must produce actionable diagnostics; they must not be ignored. Manifest parsing uses a 64 KiB input bound; scene/resource documents use an 8 MiB bound. `mycel-project` returns stable `MYCEL-*` diagnostic codes with file and field/JSON-path context. Project and scene schema versions are independent of the engine's SemVer compatibility range.
+
+## Parser dependency review
+
+The new direct dependencies are `toml` 0.9.12 (manifest decoding) and `semver` 1.0.28 (engine compatibility bounds). Both use MIT OR Apache-2.0, declare MSRVs below Mycel's Rust 1.87.0, and are pure Rust without OS/native-library requirements. The versioned lockfile is committed and `cargo deny check` passes. TOML 0.9.12 currently pulls both `winnow` 0.7.15 and 1.0.4; cargo-deny reports this as a duplicate-version warning for explicit future review, not a suppressed finding. `serde_json` was already a reviewed workspace dependency and remains the scene/resource parser.
 
 ## Compatibility and evolution
 

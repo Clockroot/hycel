@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/mycel-core",
+    "crates/mycel-project",
     "crates/mycel-demo",
 ]
 
@@ -15,6 +16,8 @@ license = "Apache-2.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.10.9"
+semver = "1.0.27"
+toml = "0.9.7"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

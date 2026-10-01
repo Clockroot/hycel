@@ -1,0 +1,16 @@
+[package]
+name = "mycel-project"
+description = "Versioned project manifests and scene/resource validation for Mycel"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true
