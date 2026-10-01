@@ -14,6 +14,11 @@ use semver::Version;
 use serde::Deserialize;
 use serde_json::Value;
 
+mod migration;
+pub use migration::{
+    MigrationReceipt, migrate_scene_file, migrate_scene_json, restore_scene_backup,
+};
+
 /// Maximum manifest file size in bytes.
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 /// Maximum scene or resource descriptor size in bytes.
@@ -37,7 +42,7 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-    fn new(
+    pub(crate) fn new(
         code: &'static str,
         file: Option<&str>,
         path: impl Into<String>,
@@ -683,7 +688,7 @@ impl ComponentRegistry {
     }
 }
 
-/// Strict version-1 scene document with already validated local references.
+/// Strict versioned scene document with already validated local references.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SceneDocument {
@@ -700,11 +705,32 @@ pub struct SceneEntity {
     id: String,
     name: String,
     #[serde(default)]
+    tags: Field<Vec<String>>,
+    #[serde(default)]
     parent: Option<String>,
     #[serde(default)]
     transform: SceneTransform,
     #[serde(default)]
     components: Vec<ComponentRecord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+enum Field<T> {
+    #[default]
+    Missing,
+    Present(T),
+}
+
+impl<'de, T> Deserialize<'de> for Field<T>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        T::deserialize(deserializer).map(Self::Present)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -792,7 +818,7 @@ impl SceneDocument {
     #[allow(clippy::too_many_lines)]
     fn validate(&self, file: &str, registry: &ComponentRegistry) -> Result<(), Vec<Diagnostic>> {
         let mut diagnostics = Vec::new();
-        if self.schema_version != 1 {
+        if !matches!(self.schema_version, 1 | 2) {
             diagnostics.push(Diagnostic::new(
                 "HYCEL-SCENE-002",
                 Some(file),
@@ -844,6 +870,42 @@ impl SceneDocument {
                 file,
                 &mut diagnostics,
             );
+            match (self.schema_version, &entity.tags) {
+                (1, Field::Present(_)) => diagnostics.push(Diagnostic::new(
+                    "HYCEL-SCENE-018",
+                    Some(file),
+                    format!("{base}.tags"),
+                    "tags are only supported in scene schema version 2",
+                )),
+                (2, Field::Missing) => diagnostics.push(Diagnostic::new(
+                    "HYCEL-SCENE-019",
+                    Some(file),
+                    format!("{base}.tags"),
+                    "tags is required in scene schema version 2",
+                )),
+                (_, Field::Present(tags)) => {
+                    let mut seen = BTreeSet::new();
+                    for (tag_index, tag) in tags.iter().enumerate() {
+                        if !valid_tag(tag) {
+                            diagnostics.push(Diagnostic::new(
+                                "HYCEL-SCENE-020",
+                                Some(file),
+                                format!("{base}.tags[{tag_index}]"),
+                                "tag must be 1–64 lowercase ASCII letters, digits, '.', '_' or '-', beginning with a letter or digit",
+                            ));
+                        }
+                        if !seen.insert(tag.as_str()) {
+                            diagnostics.push(Diagnostic::new(
+                                "HYCEL-SCENE-021",
+                                Some(file),
+                                format!("{base}.tags[{tag_index}]"),
+                                "duplicate entity tag",
+                            ));
+                        }
+                    }
+                }
+                (_, Field::Missing) => {}
+            }
             if entity.components.len() > MAX_COMPONENTS_PER_ENTITY {
                 diagnostics.push(Diagnostic::new(
                     "HYCEL-SCENE-007",
@@ -979,6 +1041,12 @@ impl SceneDocument {
         }
     }
 
+    /// Scene schema version.
+    #[must_use]
+    pub const fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
     /// Scene UUID.
     #[must_use]
     pub fn id(&self) -> &str {
@@ -1003,6 +1071,15 @@ impl SceneEntity {
     #[must_use]
     pub fn id(&self) -> &str {
         &self.id
+    }
+
+    /// Entity tags in authored array order.
+    #[must_use]
+    pub fn tags(&self) -> &[String] {
+        match &self.tags {
+            Field::Missing => &[],
+            Field::Present(tags) => tags,
+        }
     }
 
     /// Parent UUID, if any.
@@ -1300,6 +1377,17 @@ fn valid_component_type(value: &str) -> bool {
         })
 }
 
+fn valid_tag(value: &str) -> bool {
+    (1..=64).contains(&value.len())
+        && value
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
+        })
+}
+
 fn validate_name(value: &str, path: &str, file: &str, diagnostics: &mut Vec<Diagnostic>) {
     if value.trim().is_empty() || value.len() > 256 {
         diagnostics.push(Diagnostic::new(
@@ -1329,7 +1417,9 @@ mod tests {
         assert_eq!(manifest.default_profile(), "development");
         let scene = SceneDocument::parse_json(SCENE, "scenes/first-room.json").unwrap();
         assert_eq!(scene.name(), "First Room");
+        assert_eq!(scene.schema_version(), 2);
         assert_eq!(scene.entities().len(), 1);
+        assert_eq!(scene.entities()[0].tags()[0], "player");
     }
 
     #[test]
@@ -1373,6 +1463,44 @@ mod tests {
         assert_eq!(
             SceneDocument::parse_json(duplicate, "room.json").unwrap_err()[0].code,
             "HYCEL-SCENE-001"
+        );
+    }
+
+    #[test]
+    fn scene_schema_two_requires_unique_valid_entity_tags() {
+        let valid = br#"{"schema_version":2,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","tags":["enemy","flying"]}]}"#;
+        let scene = SceneDocument::parse_json(valid, "room.json").unwrap();
+        assert_eq!(
+            scene.entities()[0]
+                .tags()
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            ["enemy", "flying"]
+        );
+
+        let duplicate = br#"{"schema_version":2,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","tags":["enemy","enemy"]}]}"#;
+        assert!(
+            SceneDocument::parse_json(duplicate, "room.json")
+                .unwrap_err()
+                .iter()
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-021")
+        );
+
+        let missing_tags = br#"{"schema_version":2,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A"}]}"#;
+        assert!(
+            SceneDocument::parse_json(missing_tags, "room.json")
+                .unwrap_err()
+                .iter()
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-019")
+        );
+
+        let v1_tags = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","tags":[] }]}"#;
+        assert!(
+            SceneDocument::parse_json(v1_tags, "room.json")
+                .unwrap_err()
+                .iter()
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-018")
         );
     }
 

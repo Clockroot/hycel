@@ -1,6 +1,6 @@
 # Hycel project format (schema design)
 
-This document establishes the Phase 3 project layout and manifest contract. The concrete example is [`examples/empty-project/hycel.toml`](../examples/empty-project/hycel.toml). Parsing, validation, migrations, and diagnostics are implemented in later Phase 3 subphases; this document is the design source of truth meanwhile.
+This document specifies the project layout and manifest contract implemented by `hycel-project`. The concrete example is [`examples/empty-project/hycel.toml`](../examples/empty-project/hycel.toml). The manifest is schema 1; scene documents have an independent schema version and a schema-1-to-2 migration described in [`scene-format.md`](scene-format.md).
 
 ## Layout
 
@@ -53,13 +53,27 @@ debug_info = false
 
 Unknown fields, duplicate keys, malformed values, and invalid paths must produce actionable diagnostics; they must not be ignored. Manifest parsing uses a 64 KiB input bound; scene/resource documents use an 8 MiB bound. `hycel-project` returns stable `HYCEL-*` diagnostic codes with file and field/JSON-path context. Project and scene schema versions are independent of the engine's SemVer compatibility range.
 
-## Parser dependency review
+## Dependency review
 
-The new direct dependencies are `toml` 0.9.12 (manifest decoding) and `semver` 1.0.28 (engine compatibility bounds). Both use MIT OR Apache-2.0, declare MSRVs below Hycel's Rust 1.87.0, and are pure Rust without OS/native-library requirements. The versioned lockfile is committed and `cargo deny check` passes. TOML 0.9.12 currently pulls both `winnow` 0.7.15 and 1.0.4; cargo-deny reports this as a duplicate-version warning for explicit future review, not a suppressed finding. `serde_json` was already a reviewed workspace dependency and remains the scene/resource parser.
+Direct dependencies in `hycel-project` include `toml` (manifest decoding), `semver` (engine compatibility bounds), `serde_json` (strict scene/resource parsing), and `atomic-write-file` 0.3.1 (cross-platform sibling-temp atomic replacement for migrations/rollback). `atomic-write-file` is BSD-3-Clause, declares Rust 1.85 MSRV (below Hycel's 1.87.0), and documents Unix/Windows/WASI support without exposing unsafe code to Hycel. It uses `rand` and `nix` transitively. Its documented limitations include temporary files after abrupt process termination and lack of non-Unix ACL/ownership/timestamp preservation; scene migrations retain an exact-content backup before replacement. These dependencies require the checked-in lockfile and `cargo deny` review. The new random temporary-name path adds a second `cpufeatures` version through `rand`; TOML also pulls multiple `winnow` versions. `cargo deny` reports both duplicate-version warnings for explicit review; neither is suppressed.
 
 ## Compatibility and evolution
 
 The TOML manifest and JSON scene/resource choice was selected to balance editable project settings and strict machine-readable content. Scene/resource JSON uses UTF-8, rejects unknown fields unless a later version explicitly defines an extension mechanism, and is bounded before parsing. [`scene-format.md`](scene-format.md) defines the initial scene/resource envelopes, UUID references, integer transforms, defaults, and authored ordering; [`examples/empty-project/scenes/first-room.json`](../examples/empty-project/scenes/first-room.json) is a sample. Both formats are versioned and validated independently. A format change requires fixtures, migration/compatibility tests, and a release note; unknown authored data is never silently discarded.
+
+## Persisted format and migration coverage
+
+Each persisted envelope has an independent version and unsupported versions fail closed:
+
+| Format | Current schema | Older schemas | Policy |
+| --- | ---: | --- | --- |
+| `hycel.toml` manifest | 1 | none supported | Strict parse; no rewrite/migration until a real prior schema exists. |
+| Scene JSON | 2 | 1 | Explicit 1→2 migration adds empty entity tags; per-file backup, atomic commit, and validated rollback are implemented in `hycel-project`. |
+| Resource descriptor JSON | 1 | none supported | Strict parse; no rewrite/migration until a real prior schema exists. |
+| Replay JSON | 1 | none supported | Separate deterministic replay format; compatibility is documented in [ADR 0002](adr/0002-replay-format-and-state-hash.md). Unsupported versions fail closed. |
+| Component payload | Component-registered | Per component | The component registry accepts only the registered type/version; payload migrations are not yet implemented. |
+
+Format versions are not interchangeable: changing a scene does not change the manifest, resource, replay, or component versions. A migration applies only to the named file format and rejects unknown fields rather than dropping them. Current schema design/strict rejection is defined above and in [`scene-format.md`](scene-format.md).
 
 ## Generated and ignored content
 

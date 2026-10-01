@@ -26,7 +26,7 @@ Lower layers never depend on editor UI, agent protocol, or a particular host OS.
 Planned crates (split only when boundaries are real; avoid premature micro-crates):
 
 - `hycel-core`: deterministic world/simulation types, fixed-step schedule, stable IDs, math-facing abstractions. No OS, renderer, wall clock, or I/O.
-- `hycel-project`: project manifest, versioned scene/resource schemas, bounded strict parsing, structured validation diagnostics, and (planned) migration.
+- `hycel-project`: project manifest, versioned scene/resource schemas, bounded strict parsing, structured validation diagnostics, and explicit per-file scene migration/rollback.
 - `hycel-assets`: asset identity, import metadata, dependency graph, content hashing, cache.
 - `hycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
 - `hycel-render`: 2D renderer behind a backend boundary; initial candidate `wgpu`, pending a renderer spike and explicit backend decision.
