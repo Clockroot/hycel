@@ -5,9 +5,14 @@
 //! simulation never reads ambient time itself.
 
 mod math;
+mod schedule;
 mod world;
 
 pub use math::{Angle, MathError, SimScalar, Transform2D, Vec2};
+pub use schedule::{
+    DeterministicRng, InputFrame, RngError, Schedule, ScheduleError, ScheduledEvent, SystemError,
+    SystemId, TickContext,
+};
 pub use world::{ComponentStorage, EntityId, World, WorldError};
 
 const NANOS_PER_SECOND: u128 = 1_000_000_000;

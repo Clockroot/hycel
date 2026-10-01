@@ -45,7 +45,10 @@ For release 0.1:
 - entity IDs include slot generations, component iteration order is deterministic, and 2D authoritative math uses documented integer fixed-point conventions;
 - interactive catch-up is capped at eight simulation steps per host frame. Excess whole-step wall-time debt is discarded and reported (simulation tick IDs are never skipped), while the fractional tick remainder is preserved;
 - pause is represented by a zero time scale: elapsed host time is not accumulated and the pre-pause fractional remainder is preserved. Slow motion uses an explicit rational scale quantized to Q32.32, not floating-point state;
-- deterministic seeded RNG provided explicitly to game code;
+- deterministic per-system PCG-XSH-RR 64/32 RNG streams are derived from explicit schedule seed/base-stream and stable system ID values, then exposed only through the tick context;
+- systems are registered before tick zero, execute serially by `(order, SystemId)`, and cannot be changed once execution starts; tick-indexed input snapshots use ordered numeric action maps;
+- events emitted in a tick are delivered next tick in `(delivery tick, producer SystemId, emission sequence)` order, with one shared immutable event set per tick;
+- a failed system restores the cloned authoritative state, RNG stream, queued events, and tick position. Callbacks must not cause external side effects;
 - replay format includes schema version, seed, tick-indexed inputs, and compatibility metadata;
 - headless execution uses the same simulation schedule as the interactive executable;
 - deterministic guarantee is scoped to the same engine version, platform target, and supported game-code subset until cross-platform bitwise tests prove more.

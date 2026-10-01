@@ -1,4 +1,6 @@
-use mycel_core::{DEFAULT_TICKS_PER_SECOND, FixedClock};
+use mycel_core::{
+    DEFAULT_TICKS_PER_SECOND, FixedClock, InputFrame as TickInputFrame, Schedule, SystemId,
+};
 
 // Small, headless proof that Mycel's chosen 1.0 target—a deterministic 2D
 // platformer—is feasible with the current Rust kernel. This is demo-only
@@ -6,10 +8,12 @@ use mycel_core::{DEFAULT_TICKS_PER_SECOND, FixedClock};
 const RUN_PER_TICK_MILLI_UNITS: i64 = 80;
 const JUMP_SPEED_MILLI_UNITS_PER_TICK: i64 = -60;
 const GRAVITY_MILLI_UNITS_PER_TICK: i64 = 2;
+const HORIZONTAL_ACTION: u16 = 0;
+const JUMP_ACTION: u16 = 1;
 
 #[derive(Debug, Clone, Copy, Default)]
 struct InputFrame {
-    horizontal: i8,
+    horizontal: i16,
     jump_pressed: bool,
 }
 
@@ -77,26 +81,37 @@ impl PlatformerPrototype {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut clock = FixedClock::new(DEFAULT_TICKS_PER_SECOND)?;
     let mut game = PlatformerPrototype::default();
+    let mut schedule = Schedule::<PlatformerPrototype, ()>::new(0x004d_5943_454c, 0);
+    schedule.add_system(0, SystemId::new(1), |game, context| {
+        game.step(InputFrame {
+            horizontal: context.input().axis(HORIZONTAL_ACTION),
+            jump_pressed: context.input().button(JUMP_ACTION),
+        });
+        Ok(())
+    })?;
     let mut highest_jump_milli_units = 0_i64;
 
     // Run a short, repeatable headless platformer session: move right and jump
     // once. This provides a real Rust executable alongside the scope documents.
-    for frame in 0..90 {
+    for frame in 0_u32..90 {
         let due_steps = clock.advance_ns(16_666_667)?;
         if due_steps != 1 {
             return Err(format!("expected one tick for demo frame, got {due_steps}").into());
         }
 
-        game.step(InputFrame {
-            horizontal: 1,
-            jump_pressed: frame == 30,
-        });
+        let mut input = TickInputFrame::new(u64::from(frame));
+        input.set_axis(HORIZONTAL_ACTION, 1);
+        input.set_button(JUMP_ACTION, frame == 30);
+        schedule.run_tick(&mut game, &input)?;
         highest_jump_milli_units = highest_jump_milli_units.min(game.player.y_milli_units);
     }
 
+    if schedule.next_tick() != clock.tick() {
+        return Err("clock and simulation schedule ticks diverged".into());
+    }
     println!(
         "Mycel platformer prototype: ticks={}, x={} milli-units, highest_jump={} milli-units, grounded={}",
-        clock.tick(),
+        schedule.next_tick(),
         game.player.x_milli_units,
         highest_jump_milli_units,
         game.player.grounded
@@ -166,7 +181,7 @@ mod tests {
         let mut b = PlatformerPrototype::default();
         for frame in 0..90 {
             let input = InputFrame {
-                horizontal: i8::from(frame < 60),
+                horizontal: i16::from(frame < 60),
                 jump_pressed: frame == 20,
             };
             a.step(input);
