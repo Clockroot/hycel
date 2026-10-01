@@ -326,8 +326,9 @@ pub fn plan_reimport(previous: Option<&ImportRecord>, desired: &ImportRecord) ->
 /// containment, and must resolve to a regular file. `max_bytes` is an explicit
 /// caller policy; the function streams at most that many bytes plus one byte to
 /// detect an oversized source. Timestamps and filesystem traversal order never
-/// enter the digest. This is not a filesystem snapshot; callers must serialize
-/// source writes while hashing to avoid observing a concurrent partial edit.
+/// enter the digest. This is not a filesystem snapshot or race-resistant file
+/// handle: callers must prevent concurrent changes to source bytes and path
+/// components (including symlink/rename replacement) while hashing.
 ///
 /// # Errors
 ///

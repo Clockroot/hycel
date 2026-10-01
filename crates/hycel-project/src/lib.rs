@@ -1326,7 +1326,9 @@ pub fn validate_relative_project_path(path: &str) -> Result<(), Diagnostic> {
 }
 
 /// Resolves an existing project-relative file or directory and rejects symlink
-/// escapes from the canonical project root.
+/// escapes from the canonical project root at resolution time. This returns a
+/// path, not a race-resistant capability: callers opening it must prevent
+/// concurrent renames or symlink replacement of project path components.
 ///
 /// # Errors
 ///

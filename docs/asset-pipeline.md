@@ -13,7 +13,7 @@ Importers must behave as deterministic functions of the bytes and settings repre
 
 ## Source hashing and safety
 
-`hash_source_file(project_root, relative_path, max_bytes)` resolves the existing project-relative path with `hycel-project` containment and symlink checks, requires a regular file, and streams it with bounded memory. The caller provides a maximum byte count; oversize files fail with a typed error before a digest is returned. Hashing uses the complete bytes, not an mtime/size shortcut. Empty files have the SHA-256 empty-input digest. A later content change is detected by recomputing the digest. The read is not a filesystem snapshot: callers must serialize source writes while hashing/importing so one digest cannot observe a concurrent partial edit.
+`hash_source_file(project_root, relative_path, max_bytes)` resolves the existing project-relative path with `hycel-project` containment and symlink checks, requires a regular file, and streams it with bounded memory. The caller provides a maximum byte count; oversize files fail with a typed error before a digest is returned. Hashing uses the complete bytes, not an mtime/size shortcut. Empty files have the SHA-256 empty-input digest. A later content change is detected by recomputing the digest. The read is not a filesystem snapshot or race-resistant file handle: callers must exclude concurrent source writes and project path-component changes (including renames/symlink replacement) while hashing/importing. The canonical-path containment check is point-in-time and does not defend against a hostile process concurrently replacing the tree.
 
 ## Import record and reimport policy
 

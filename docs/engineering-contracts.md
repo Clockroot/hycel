@@ -29,7 +29,7 @@ These rules apply to the engine, editor, tools, samples, and CI. They are the de
 - Never silently delete, overwrite, truncate, or reinterpret project/user data. Destructive migrations and edits require an explicit preview or clear confirmation and a recoverable backup.
 - Write project, configuration, and save files transactionally: write a sibling temporary file, flush/close as appropriate, then atomically replace; handle platform limitations and recovery explicitly.
 - Persisted formats are versioned. Migration is explicit, ordered, tested on fixtures, and failure-atomic. Unknown fields are preserved or cause a clear error; they are not silently dropped.
-- Every file importer applies size/path/reference validation and bounded resource use. Protect against path traversal, symlink escapes, decompression bombs, and malformed assets.
+- Every file importer applies size/path/reference validation and bounded resource use. Protect against path traversal, symlink escapes, decompression bombs, and malformed assets. Canonical path-containment checks are point-in-time, not race-resistant handles; callers must serialize project-tree/path mutations during file operations, and must not treat this check alone as a sandbox against a hostile concurrent process.
 - Keep `Cargo.lock` checked in for applications/workspace tools and use `--locked` in CI and release builds. Format/schema/API changes require tests and migration/release notes.
 
 ## Dependencies and supply chain

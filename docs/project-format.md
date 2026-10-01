@@ -14,7 +14,7 @@ my-game/
 └── .hycel/             # generated caches and editor/engine state; safe to regenerate
 ```
 
-`hycel.toml` is the only project-root marker. Source, asset, and scene paths are project-relative, UTF-8, and must remain inside the project root after normalization and symlink resolution. Paths may not be absolute or contain a traversal outside the project. Their actual existence and file types are checked by project validation, not by the manifest parser. `build/` and `.hycel/` are generated directories and should be ignored by version control; project source and authored content are never generated or discarded by the engine.
+`hycel.toml` is the only project-root marker. Source, asset, and scene paths are project-relative, UTF-8, and must resolve inside the project root after normalization and symlink resolution. Paths may not be absolute or contain a traversal outside the project. Their actual existence and file types are checked by project validation, not by the manifest parser. Containment checks are point-in-time; file-opening callers must prevent concurrent project path-component changes and must not use these checks alone as a sandbox against a hostile concurrent process. `build/` and `.hycel/` are generated directories and should be ignored by version control; project source and authored content are never generated or discarded by the engine.
 
 The first layout uses fixed directory names rather than user-configurable roots. This keeps tooling predictable and avoids allowing project files to redirect writes to arbitrary locations. A later ADR is required before making roots configurable.
 
