@@ -55,7 +55,7 @@ Unknown fields, duplicate keys, malformed values, and invalid paths must produce
 
 ## Compatibility and evolution
 
-The TOML manifest and JSON scene/resource choice was selected to balance editable project settings and strict machine-readable content. Scene/resource JSON uses UTF-8, rejects unknown fields unless a later version explicitly defines an extension mechanism, and is bounded before parsing. Both formats are versioned and validated independently. A format change requires fixtures, migration/compatibility tests, and a release note; unknown authored data is never silently discarded.
+The TOML manifest and JSON scene/resource choice was selected to balance editable project settings and strict machine-readable content. Scene/resource JSON uses UTF-8, rejects unknown fields unless a later version explicitly defines an extension mechanism, and is bounded before parsing. [`scene-format.md`](scene-format.md) defines the initial scene/resource envelopes, UUID references, integer transforms, defaults, and authored ordering; [`examples/empty-project/scenes/first-room.json`](../examples/empty-project/scenes/first-room.json) is a sample. Both formats are versioned and validated independently. A format change requires fixtures, migration/compatibility tests, and a release note; unknown authored data is never silently discarded.
 
 ## Generated and ignored content
 

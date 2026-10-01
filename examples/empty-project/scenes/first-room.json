@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "10000000-0000-4000-8000-000000000001",
+  "name": "First Room",
+  "entities": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "name": "Player",
+      "parent": null,
+      "transform": {
+        "translation_milli": [0, 0],
+        "rotation_units": 0,
+        "scale_milli": [1000, 1000]
+      },
+      "components": []
+    }
+  ]
+}
