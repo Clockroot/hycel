@@ -6,20 +6,20 @@ This is the planned 1.0 target contract selected in Phase 1.2. A row is **not ye
 
 | OS family | Minimum supported OS | CPU architecture | Rust target triple | GitHub Actions runner | Planned graphics backend | Status |
 |---|---|---|---|---|---|---|
-| macOS | macOS 14 Sonoma | x86-64 | `x86_64-apple-darwin` | `macos-15-intel` | Metal | Experimental; native headless CI only |
-| macOS | macOS 14 Sonoma | ARM64 | `aarch64-apple-darwin` | `macos-15` | Metal | Experimental; native headless CI only |
-| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | x86-64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04` | Vulkan 1.1+ | Experimental; native headless CI only |
-| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | ARM64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Vulkan 1.1+ | Experimental; native headless CI only |
-| Windows | Windows 11 24H2 (build 26100)+ | x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` (native x64) | Direct3D 12 | Experimental; native headless CI only, not verified on client Windows 11 |
-| Windows | Windows 11 24H2 (build 26100)+ | ARM64 | `aarch64-pc-windows-msvc` | `windows-11-arm` | Direct3D 12 | Experimental; native headless CI only |
+| macOS | macOS 14 Sonoma | x86-64 | `x86_64-apple-darwin` | `macos-15-intel` | Metal | Experimental; native CI/build, no runtime smoke yet |
+| macOS | macOS 14 Sonoma | ARM64 | `aarch64-apple-darwin` | `macos-15` | Metal | Experimental; native CI and Metal clear/present smoke on hosted macOS 15 |
+| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | x86-64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04` | Vulkan 1.1+ | Experimental; native CI and llvmpipe/Vulkan clear/present smoke under Xvfb |
+| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | ARM64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Vulkan 1.1+ | Experimental; native CI/build, no runtime smoke yet |
+| Windows | Windows 11 24H2 (build 26100)+ | x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` (native x64) | Direct3D 12 | Experimental; native CI and Microsoft Basic Render Driver/D3D12 clear/present smoke; not verified on client Windows 11 |
+| Windows | Windows 11 24H2 (build 26100)+ | ARM64 | `aarch64-pc-windows-msvc` | `windows-11-arm` | Direct3D 12 | Experimental; native CI/build, no runtime smoke yet |
 
 Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-only restriction. Other distributions may work if they meet the ABI, driver, and dependency requirements, but are not individually certified by the baseline matrix.
 
 ## Graphics backend policy
 
-- Candidate graphics abstraction: Rust `wgpu` + `winit`. Phase 1.5 currently evaluates `wgpu 30.0.1` (Rust 1.87.0 MSRV) and `winit 0.30.13` in an isolated, non-product spike; native multi-platform runtime validation and a decision ADR are still pending. These are not yet engine dependencies.
+- Accepted Phase 4 windowing/renderer candidate: Rust `winit 0.30.13` + `wgpu 30.0.1` (Rust 1.87.0 MSRV), recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). They remain isolated spike dependencies, not engine/product dependencies; Phase 4.1 revalidates versions and requirements before adoption.
 - Intended native mapping: Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1 or newer on Linux.
-- OpenGL/software-renderer fallback is **not** part of the 1.0 promise unless the renderer spike demonstrates a maintainable fallback and it receives its own smoke-test coverage.
+- OpenGL or CPU/software rendering is **not** part of the 1.0 product fallback promise. The Linux llvmpipe and Windows Basic Render Driver paths were exercised only as hosted-CI feasibility adapters, not as supported end-user fallback modes.
 - The current headless kernel has no renderer. Consequently, no graphics backend is currently supported; backend names above are planned targets only.
 - A machine without a compatible graphics adapter/driver must receive an actionable startup diagnostic. It must not silently switch to an untested backend.
 
@@ -33,7 +33,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 ## CI contract
 
-`.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native headless CI; keep this table in sync in the same change whenever a row changes. Each row must run formatting, Clippy, tests, and a release build for the listed native target. A green headless job proves only that Rust code builds/tests on that runner; it does not prove the graphics backend, minimum OS floor, or packaged game works.
+`.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native CI; keep this table in sync in the same change whenever a row changes. Each row runs formatting, Clippy, tests, and a release build for the listed native target. The Phase 1.5 probe also builds on all six native runners and runs representative hosted Metal, Vulkan, and Direct3D 12 clear/present smokes. These tests do not prove the minimum OS floor or packaged game works.
 
 Phase 4/8 must add real runtime and packaging checks. Minimum-OS versions that are newer than the hosted runner's compatibility surface require dedicated manual/device validation and recorded evidence before status can change to supported.
 

@@ -1,6 +1,6 @@
 # ADR 0001: Windowing and renderer candidate
 
-- **Status:** Proposed; native matrix/runtime evidence and maintainer acceptance pending.
+- **Status:** Accepted as the Phase 4 candidate; production dependency adoption remains subject to Phase 4.1 revalidation.
 - **Date:** 2026-10-01
 - **Scope:** Phase 1.5 feasibility only. This is not a production dependency adoption.
 
@@ -21,22 +21,24 @@ The isolated probe under [`../../spikes/phase-1.5-renderer`](../../spikes/phase-
 
 This is a feasibility comparison, not a benchmark or legal certification. Exact dependency graphs are reviewed by the CI `cargo-deny` job and emitted as machine-readable artifacts.
 
-## Proposed direction
+## Decision
 
 1. Use `winit` for native windows/events and `wgpu` as the renderer candidate; wrap both behind Mycel-owned interfaces.
 2. Keep all graphics/platform dependencies out of `mycel-core`; make the simulation authoritative and independent of adapter availability.
 3. Retain Rust 1.87.0 MSRV. Do not claim supported graphics targets until native smoke and later packaging/minimum-OS tests pass.
-4. Accept this proposal for the Phase 4 vertical slice only if all six native target builds and representative macOS, Linux, and Windows runtime smokes pass, dependency/license/advisory checks remain acceptable, and the user/maintainer accepts this ADR.
-5. Re-evaluate crate versions, MSRV, licenses, backend health, and API stability at Phase 4.1; the spike's exact pins are evidence, not a long-term pin policy.
+4. The user accepted this direction as the Phase 4 candidate after all six native target builds and representative macOS, Linux, and Windows runtime smokes passed, with dependency/license/advisory checks acceptable.
+5. Re-evaluate crate versions, MSRV, licenses, backend health, and API stability at Phase 4.1 before adding product dependencies; the spike's exact pins are evidence, not a long-term pin policy.
 
 ## Evidence
 
 - Apple M4 / macOS host: `cargo +1.87.0 clippy`, tests, release build, and `--smoke` succeeded using `wgpu 30.0.1` / Metal; smoke reported adapter `Apple M4`, backend `Metal`, and 168 presented frames in three seconds.
 - Input mapping tests cover Space press/release and Escape close behavior. Window close/resize handling is exercised by the native event loop implementation, but physical input automation is not part of this probe.
 - `cargo deny` reports no advisory, license, or source failures for the spike; its duplicate-version warnings are retained for review.
-- Native CI run: pending.
+- [CI run 36815524964](https://github.com/aaf2tbz/mycel/actions/runs/36815524964): renderer probe formatted, linted, tested, and built on all six native target rows. Representative runtime smokes passed on Linux x86-64 (llvmpipe/Vulkan under Xvfb, 5,181 frames), macOS ARM64 hosted runner (Apple Paravirtual Metal device, 99 frames), and Windows x86-64 hosted runner (Microsoft Basic Render Driver/D3D12, 176 frames). macOS x86-64, Linux ARM64, and Windows ARM64 were build/test validated but not runtime-smoked.
+- The same CI run passed the revised Rust 1.87.0 MSRV job, root/spike cargo-deny advisory/license/source checks, docs, and the fresh-runner development setup baseline.
+- Hosted software/virtual graphics devices prove API feasibility only; they are not hardware, minimum-OS, packaging, or end-user fallback certification.
 
-## Consequences if accepted
+## Consequences
 
 - `mycel-core` remains graphics/window independent; new renderer/platform crates own adapters and diagnostics.
 - Phase 4.3 must add textured sprite drawing, shader/error handling, and resize/device-loss coverage.

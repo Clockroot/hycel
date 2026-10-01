@@ -8,10 +8,10 @@ CI job `Fresh-runner development setup baseline` starts from a new `ubuntu-24.04
 
 | Runner/toolchain | Release build (wall seconds) | Tests (wall seconds) | CI run / artifact |
 |---|---:|---:|---|
-| Ubuntu 24.04, Rust 1.87.0 | Pending first fresh-runner result | Pending | Pending |
-| Ubuntu 24.04, current stable | Pending first fresh-runner result | Pending | Pending |
+| Ubuntu 24.04, Rust 1.87.0 | 0.21 | 0.25 | [CI run 36815524964](https://github.com/aaf2tbz/mycel/actions/runs/36815524964), artifact `clean-development-baseline-cf15e00aafa7e6126466e8e944afc552ff4344ce` |
+| Ubuntu 24.04, stable 1.98.1 | 0.59 | 0.17 | [CI run 36815524964](https://github.com/aaf2tbz/mycel/actions/runs/36815524964), same artifact |
 
-These are reproducibility and regression baselines, not performance promises. Runner load, hosted hardware, Rust version, and dependency graph can change timings; compare like-for-like runs. Record a new measurement after material dependency/toolchain changes and retain earlier CI artifact links in project history.
+The same artifact recorded `cargo +1.87.0 run -p mycel-demo --locked` at 0.15 seconds. The job starts without a Rust build-cache action or prior Mycel artifacts; commands share that job's Cargo target directory, so this is an initial fresh-runner setup baseline, not an isolated benchmark for each toolchain. These are reproducibility/regression baselines, not performance promises. Runner load, hosted hardware, Rust version, and dependency graph can change timings; compare like-for-like runs. Record a new measurement after material dependency/toolchain changes and retain earlier CI artifact links in project history.
 
 ## Local commands
 
