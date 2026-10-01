@@ -67,7 +67,7 @@ Authoritative 2D values use `SimScalar` in milli-world-units, with +X right and 
 
 ## Project format and API stability
 
-Project files are text-first, UTF-8, schema-versioned, and human diffable. Every serialized format has a version and validation errors include file, path, and actionable explanation. Migrations are explicit, transactional, and preserve a backup. Unknown fields must not be silently discarded. Runtime/agent commands are versioned separately from file schemas.
+Project files are text-first, UTF-8, schema-versioned, and human diffable. The initial project layout uses a TOML `mycel.toml` manifest and strict JSON scene/resource documents as specified in [`project-format.md`](project-format.md). Every serialized format has a version and validation errors include file, path, and actionable explanation. Migrations are explicit, transactional, and preserve a backup. Unknown fields must not be silently discarded. Runtime/agent commands are versioned separately from file schemas.
 
 Game logic may initially use Rust modules compiled into the game. Do not make dynamic scripting a release blocker. Evaluate a scripting language only after the 2D vertical slice, with sandboxing, deterministic behavior, error diagnostics, and editor tooling as acceptance criteria.
 
