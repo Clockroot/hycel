@@ -1,4 +1,4 @@
-use mycel_core::FixedClock;
+use mycel_core::{DEFAULT_TICKS_PER_SECOND, FixedClock};
 
 // Small, headless proof that Mycel's chosen 1.0 target—a deterministic 2D
 // platformer—is feasible with the current Rust kernel. This is demo-only
@@ -75,7 +75,7 @@ impl PlatformerPrototype {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut clock = FixedClock::new(60)?;
+    let mut clock = FixedClock::new(DEFAULT_TICKS_PER_SECOND)?;
     let mut game = PlatformerPrototype::default();
     let mut highest_jump_milli_units = 0_i64;
 

@@ -41,7 +41,9 @@ Interactive wall time is sampled only by the host loop. It is converted to fixed
 
 For release 0.1:
 
-- fixed-step simulation (initial default 60 Hz), bounded catch-up policy owned by runtime;
+- fixed-step simulation at 60 Hz by default; the host samples monotonic wall time and supplies integer nanoseconds, while simulation code never reads a clock;
+- interactive catch-up is capped at eight simulation steps per host frame. Excess whole-step wall-time debt is discarded and reported (simulation tick IDs are never skipped), while the fractional tick remainder is preserved;
+- pause is represented by a zero time scale: elapsed host time is not accumulated and the pre-pause fractional remainder is preserved. Slow motion uses an explicit rational scale quantized to Q32.32, not floating-point state;
 - deterministic seeded RNG provided explicitly to game code;
 - replay format includes schema version, seed, tick-indexed inputs, and compatibility metadata;
 - headless execution uses the same simulation schedule as the interactive executable;

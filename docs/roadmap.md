@@ -44,7 +44,7 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ### Subphases
 
-1. **2.1 — Specify time and catch-up policy.** Define fixed tick rate, pause/slow-motion semantics, overload behavior, and the boundary between host wall time and simulation time.
+1. **2.1 — Specify time and catch-up policy — COMPLETE.** `mycel-core::FixedClock` uses a 60 Hz initial default and host-supplied integer nanoseconds; `TimeScale` uses deterministic Q32.32 ratios, including zero-scale pause; interactive advancement is explicitly capped (default eight steps), reports dropped whole wall-time debt, preserves the fractional remainder, and never skips logical tick IDs. Tests cover rate, drift, pause, slow motion, catch-up, and failure atomicity.
 2. **2.2 — Establish world primitives.** Add stable entity identifiers, transforms/math conventions, component storage, and explicit lifecycle rules. Keep the API small; do not prematurely build a universal ECS framework.
 3. **2.3 — Build the deterministic schedule.** Define ordered systems, tick-indexed input, seeded random streams, and deterministic event delivery. Ban ambient clock/randomness from authoritative simulation code.
 4. **2.4 — Add replay and state inspection.** Record schema-versioned input frames and seeds; allow headless playback and produce a canonical authoritative state hash for supported configurations.
@@ -194,4 +194,4 @@ These requirements apply throughout all phases, not just before 1.0:
 
 ## Current position
 
-The repository has completed **Phase 1**. Phase 1.5 accepted `wgpu` + `winit` as the Phase 4 candidate after six-target build checks and representative native runtime smokes; Phase 4.1 will revalidate exact dependencies before product integration. No renderer, GPU driver, minimum OS installation, or packaged game is certified; all targets remain experimental until later minimum-OS and packaging gates pass.
+The repository has completed **Phase 1** and **Phase 2.1**. Phase 2 is underway with deterministic timing policy in place; next is stable world/entity primitives (2.2). Phase 1.5 accepted `wgpu` + `winit` as the Phase 4 candidate after six-target build checks and representative native runtime smokes; Phase 4.1 will revalidate exact dependencies before product integration. No renderer, GPU driver, minimum OS installation, or packaged game is certified; all targets remain experimental until later minimum-OS and packaging gates pass.
