@@ -39,6 +39,10 @@ The promise is about complete game capabilities, not a fixed entity count, art b
 
 These limits do not forbid experimentation or community extensions. They bound the official compatibility, documentation, sample coverage, and support promise.
 
+## Current proof of direction
+
+`crates/mycel-demo` contains a headless Rust prototype for fixed-tick horizontal movement, a single jump, and landing on a flat floor, with deterministic unit tests. It demonstrates that the selected genre has a concrete code path in the current workspace; it does **not** fulfill the 1.0 game-scale promise, establish a stable gameplay API, or replace the planned general collision/physics, renderer, scenes, assets, editor, and agent tools.
+
 ## Product principles
 
 1. **Rust-first, portable by design.** Platform-specific code stays at narrow boundaries; all target support is verified on native runners/devices.

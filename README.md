@@ -17,7 +17,7 @@ Game projects should be inspectable and testable without clicking through an edi
 ## Current state
 
 - `mycel-core`: fixed-rate integer simulation clock; no platform APIs or third-party dependencies.
-- `mycel-demo`: headless one-second/60-tick smoke demo.
+- `mycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Design and release requirements: [`docs/`](docs/).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
@@ -30,7 +30,7 @@ cargo run -p mycel-demo
 cargo test --workspace
 ```
 
-Expected output: `Mycel headless demo: 60 deterministic steps; tick=60`.
+Run it with `cargo run -p mycel-demo`; it reports a repeatable 90-tick platformer movement/jump/landing scenario.
 
 ## Status and compatibility
 
