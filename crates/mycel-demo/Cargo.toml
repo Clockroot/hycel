@@ -1,0 +1,13 @@
+[package]
+name = "mycel-demo"
+description = "Headless starter demo for the Mycel game engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+mycel-core = { path = "../mycel-core" }
+
+[lints]
+workspace = true
