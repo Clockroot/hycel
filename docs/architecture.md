@@ -42,6 +42,7 @@ Interactive wall time is sampled only by the host loop. It is converted to fixed
 For release 0.1:
 
 - fixed-step simulation at 60 Hz by default; the host samples monotonic wall time and supplies integer nanoseconds, while simulation code never reads a clock;
+- entity IDs include slot generations, component iteration order is deterministic, and 2D authoritative math uses documented integer fixed-point conventions;
 - interactive catch-up is capped at eight simulation steps per host frame. Excess whole-step wall-time debt is discarded and reported (simulation tick IDs are never skipped), while the fractional tick remainder is preserved;
 - pause is represented by a zero time scale: elapsed host time is not accumulated and the pre-pause fractional remainder is preserved. Slow motion uses an explicit rational scale quantized to Q32.32, not floating-point state;
 - deterministic seeded RNG provided explicitly to game code;
@@ -50,6 +51,12 @@ For release 0.1:
 - deterministic guarantee is scoped to the same engine version, platform target, and supported game-code subset until cross-platform bitwise tests prove more.
 
 Do not claim universal bitwise determinism across CPU architectures until tested. Rendering and audio are presentation; they do not write authoritative simulation state.
+
+## World primitives and math conventions
+
+`mycel-core` uses slot-index/generation [`EntityId`](../crates/mycel-core/src/world.rs) values: new slots are allocated in increasing index order when no reusable slot exists; otherwise the most recently despawned reusable slot is reused. Generation overflow retires a slot instead of wrapping. Live-entity iteration is in increasing slot order. Typed `ComponentStorage<T>` values are ordered by `EntityId`, validate liveness on insert/query, and can reclaim entries for despawned entities with `retain_alive`; world owners must call that on stores after despawns. This is intentionally a small set of explicit stores, not a reflective/global ECS registry.
+
+Authoritative 2D values use `SimScalar` in milli-world-units, with +X right and +Y down. `Angle` uses 65,536 clockwise units per turn. Fixed-point arithmetic truncates toward zero and reports overflow/division errors instead of saturating. Transform conversion to backend floats belongs to the renderer/presentation boundary.
 
 ## Project format and API stability
 
