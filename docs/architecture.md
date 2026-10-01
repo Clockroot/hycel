@@ -1,8 +1,8 @@
-# Mycel architecture (proposed)
+# Hycel architecture (proposed)
 
 ## Product contract
 
-Mycel's primary design constraint is that the engine must be operable and diagnosable through a documented interface without a GUI. A GUI is a client of the engine, not the source of truth. Humans and agents use the same project files, validation rules, runtime, and diagnostics.
+Hycel's primary design constraint is that the engine must be operable and diagnosable through a documented interface without a GUI. A GUI is a client of the engine, not the source of truth. Humans and agents use the same project files, validation rules, runtime, and diagnostics.
 
 ## Dependency direction
 
@@ -25,15 +25,15 @@ Lower layers never depend on editor UI, agent protocol, or a particular host OS.
 
 Planned crates (split only when boundaries are real; avoid premature micro-crates):
 
-- `mycel-core`: deterministic world/simulation types, fixed-step schedule, stable IDs, math-facing abstractions. No OS, renderer, wall clock, or I/O.
-- `mycel-project`: project manifest, versioned scene/resource schemas, bounded strict parsing, structured validation diagnostics, and (planned) migration.
-- `mycel-assets`: asset identity, import metadata, dependency graph, content hashing, cache.
-- `mycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
-- `mycel-render`: 2D renderer behind a backend boundary; initial candidate `wgpu`, pending a renderer spike and explicit backend decision.
-- `mycel-platform`: window, files, clock, input, and OS integration adapters.
-- `mycel-cli`: stable human CLI plus versioned JSON output for validation, build, test, run, inspect, and screenshot.
-- `mycel-agent`: optional protocol adapters (MCP and/or JSON-RPC stdio) that call the same typed application services as the CLI. Protocol glue must not contain engine logic.
-- `mycel-editor`: defer until project format and runtime loop work headlessly. Editor operations must round-trip project files without hidden data loss.
+- `hycel-core`: deterministic world/simulation types, fixed-step schedule, stable IDs, math-facing abstractions. No OS, renderer, wall clock, or I/O.
+- `hycel-project`: project manifest, versioned scene/resource schemas, bounded strict parsing, structured validation diagnostics, and (planned) migration.
+- `hycel-assets`: asset identity, import metadata, dependency graph, content hashing, cache.
+- `hycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
+- `hycel-render`: 2D renderer behind a backend boundary; initial candidate `wgpu`, pending a renderer spike and explicit backend decision.
+- `hycel-platform`: window, files, clock, input, and OS integration adapters.
+- `hycel-cli`: stable human CLI plus versioned JSON output for validation, build, test, run, inspect, and screenshot.
+- `hycel-agent`: optional protocol adapters (MCP and/or JSON-RPC stdio) that call the same typed application services as the CLI. Protocol glue must not contain engine logic.
+- `hycel-editor`: defer until project format and runtime loop work headlessly. Editor operations must round-trip project files without hidden data loss.
 
 ## Determinism boundary
 
@@ -61,13 +61,13 @@ Do not claim universal bitwise determinism across CPU architectures until tested
 
 ## World primitives and math conventions
 
-`mycel-core` uses slot-index/generation [`EntityId`](../crates/mycel-core/src/world.rs) values: new slots are allocated in increasing index order when no reusable slot exists; otherwise the most recently despawned reusable slot is reused. Generation overflow retires a slot instead of wrapping. Live-entity iteration is in increasing slot order. Typed `ComponentStorage<T>` values are ordered by `EntityId`, validate liveness on insert/query, and can reclaim entries for despawned entities with `retain_alive`; world owners must call that on stores after despawns. This is intentionally a small set of explicit stores, not a reflective/global ECS registry.
+`hycel-core` uses slot-index/generation [`EntityId`](../crates/hycel-core/src/world.rs) values: new slots are allocated in increasing index order when no reusable slot exists; otherwise the most recently despawned reusable slot is reused. Generation overflow retires a slot instead of wrapping. Live-entity iteration is in increasing slot order. Typed `ComponentStorage<T>` values are ordered by `EntityId`, validate liveness on insert/query, and can reclaim entries for despawned entities with `retain_alive`; world owners must call that on stores after despawns. This is intentionally a small set of explicit stores, not a reflective/global ECS registry.
 
 Authoritative 2D values use `SimScalar` in milli-world-units, with +X right and +Y down. `Angle` uses 65,536 clockwise units per turn. Fixed-point arithmetic truncates toward zero and reports overflow/division errors instead of saturating. Transform conversion to backend floats belongs to the renderer/presentation boundary.
 
 ## Project format and API stability
 
-Project files are text-first, UTF-8, schema-versioned, and human diffable. The initial project layout uses a TOML `mycel.toml` manifest and strict JSON scene/resource documents as specified in [`project-format.md`](project-format.md) and [`scene-format.md`](scene-format.md). The `mycel-project` crate bounds parser input, rejects unknown fields, and returns stable diagnostic codes with file/path context. Every serialized format has a version and validation errors include actionable explanation. Migrations are explicit, transactional, and preserve a backup. Unknown fields must not be silently discarded. Runtime/agent commands are versioned separately from file schemas.
+Project files are text-first, UTF-8, schema-versioned, and human diffable. The initial project layout uses a TOML `hycel.toml` manifest and strict JSON scene/resource documents as specified in [`project-format.md`](project-format.md) and [`scene-format.md`](scene-format.md). The `hycel-project` crate bounds parser input, rejects unknown fields, and returns stable diagnostic codes with file/path context. Every serialized format has a version and validation errors include actionable explanation. Migrations are explicit, transactional, and preserve a backup. Unknown fields must not be silently discarded. Runtime/agent commands are versioned separately from file schemas.
 
 Game logic may initially use Rust modules compiled into the game. Do not make dynamic scripting a release blocker. Evaluate a scripting language only after the 2D vertical slice, with sandboxing, deterministic behavior, error diagnostics, and editor tooling as acceptance criteria.
 

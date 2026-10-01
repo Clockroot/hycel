@@ -1,4 +1,4 @@
-# Mycel 1.0 support matrix
+# Hycel 1.0 support matrix
 
 This is the planned 1.0 target contract selected in Phase 1.2. A row is **not yet a supported product target** merely because it appears here or compiles in CI. It becomes supported only after native CI, graphics/runtime smoke tests, and packaged-game tests pass for that exact OS/architecture pair. Until then, describe it as planned/experimental.
 

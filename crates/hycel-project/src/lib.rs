@@ -112,16 +112,16 @@ impl ProjectManifest {
     pub fn parse_toml(input: &str) -> Result<Self, Diagnostic> {
         if input.len() > MAX_MANIFEST_BYTES {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-001",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-001",
+                Some("hycel.toml"),
                 "$",
                 format!("manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit"),
             ));
         }
         let manifest: Self = toml::from_str(input).map_err(|error| {
             Diagnostic::new(
-                "MYCEL-MANIFEST-002",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-002",
+                Some("hycel.toml"),
                 "$",
                 format!("invalid or unsupported manifest fields: {error}"),
             )
@@ -133,56 +133,56 @@ impl ProjectManifest {
     fn validate(&self) -> Result<(), Diagnostic> {
         if self.format_version != 1 {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-003",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-003",
+                Some("hycel.toml"),
                 "format_version",
                 "unsupported manifest schema version",
             ));
         }
         validate_uuid(&self.project.id).map_err(|message| {
             Diagnostic::new(
-                "MYCEL-MANIFEST-004",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-004",
+                Some("hycel.toml"),
                 "project.id",
                 message,
             )
         })?;
         if self.project.name.trim().is_empty() || self.project.name.len() > 256 {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-005",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-005",
+                Some("hycel.toml"),
                 "project.name",
                 "project name must contain 1–256 non-whitespace UTF-8 bytes",
             ));
         }
         let min = Version::parse(&self.engine.min_version).map_err(|error| {
             Diagnostic::new(
-                "MYCEL-MANIFEST-006",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-006",
+                Some("hycel.toml"),
                 "engine.min_version",
                 format!("invalid semantic version: {error}"),
             )
         })?;
         let max = Version::parse(&self.engine.max_version_exclusive).map_err(|error| {
             Diagnostic::new(
-                "MYCEL-MANIFEST-007",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-007",
+                Some("hycel.toml"),
                 "engine.max_version_exclusive",
                 format!("invalid semantic version: {error}"),
             )
         })?;
         if min >= max {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-008",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-008",
+                Some("hycel.toml"),
                 "engine",
                 "minimum engine version must be lower than the exclusive maximum",
             ));
         }
         if !valid_profile_name(&self.build.default_profile) {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-009",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-009",
+                Some("hycel.toml"),
                 "build.default_profile",
                 "profile name must start with a lowercase ASCII letter and contain only lowercase letters, digits, or hyphens",
             ));
@@ -193,16 +193,16 @@ impl ProjectManifest {
             .contains_key(&self.build.default_profile)
         {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-010",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-010",
+                Some("hycel.toml"),
                 "build.default_profile",
                 "default profile does not exist in build.profiles",
             ));
         }
         if self.build.profiles.is_empty() {
             return Err(Diagnostic::new(
-                "MYCEL-MANIFEST-011",
-                Some("mycel.toml"),
+                "HYCEL-MANIFEST-011",
+                Some("hycel.toml"),
                 "build.profiles",
                 "at least one build profile is required",
             ));
@@ -210,16 +210,16 @@ impl ProjectManifest {
         for (name, profile) in &self.build.profiles {
             if !valid_profile_name(name) {
                 return Err(Diagnostic::new(
-                    "MYCEL-MANIFEST-012",
-                    Some("mycel.toml"),
+                    "HYCEL-MANIFEST-012",
+                    Some("hycel.toml"),
                     format!("build.profiles.{name}"),
                     "profile name must start with a lowercase ASCII letter and contain only lowercase letters, digits, or hyphens",
                 ));
             }
             if profile.optimization > 3 {
                 return Err(Diagnostic::new(
-                    "MYCEL-MANIFEST-013",
-                    Some("mycel.toml"),
+                    "HYCEL-MANIFEST-013",
+                    Some("hycel.toml"),
                     format!("build.profiles.{name}.optimization"),
                     "optimization must be in 0..=3",
                 ));
@@ -295,7 +295,7 @@ impl ResourceDescriptor {
     ) -> Result<Self, Vec<Diagnostic>> {
         if input.len() > MAX_DOCUMENT_BYTES {
             return Err(vec![Diagnostic::new(
-                "MYCEL-DOCUMENT-001",
+                "HYCEL-DOCUMENT-001",
                 Some(file),
                 "$",
                 format!("document exceeds the {MAX_DOCUMENT_BYTES}-byte limit"),
@@ -303,7 +303,7 @@ impl ResourceDescriptor {
         }
         let resource: Self = serde_json::from_slice(input).map_err(|error| {
             vec![Diagnostic::new(
-                "MYCEL-RESOURCE-001",
+                "HYCEL-RESOURCE-001",
                 Some(file),
                 "$",
                 format!(
@@ -316,7 +316,7 @@ impl ResourceDescriptor {
         let mut diagnostics = Vec::new();
         if resource.schema_version != 1 {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-RESOURCE-002",
+                "HYCEL-RESOURCE-002",
                 Some(file),
                 "$.schema_version",
                 "unsupported resource schema version",
@@ -324,7 +324,7 @@ impl ResourceDescriptor {
         }
         if let Err(message) = validate_uuid(&resource.id) {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-RESOURCE-003",
+                "HYCEL-RESOURCE-003",
                 Some(file),
                 "$.id",
                 message,
@@ -332,7 +332,7 @@ impl ResourceDescriptor {
         }
         if !valid_component_type(&resource.kind) {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-RESOURCE-004",
+                "HYCEL-RESOURCE-004",
                 Some(file),
                 "$.kind",
                 "resource kind must be a lowercase identifier",
@@ -340,7 +340,7 @@ impl ResourceDescriptor {
         }
         match registry.definitions.get(&resource.kind) {
             None => diagnostics.push(Diagnostic::new(
-                "MYCEL-RESOURCE-006",
+                "HYCEL-RESOURCE-006",
                 Some(file),
                 "$.kind",
                 "resource kind is not registered",
@@ -352,7 +352,7 @@ impl ResourceDescriptor {
                     .find(|setting| !allowed_settings.contains(*setting))
                 {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-RESOURCE-007",
+                        "HYCEL-RESOURCE-007",
                         Some(file),
                         format!("$.import.{setting}"),
                         "unknown importer setting",
@@ -361,7 +361,7 @@ impl ResourceDescriptor {
             }
         }
         if let Err(mut diagnostic) = validate_relative_project_path(&resource.source) {
-            diagnostic.code = "MYCEL-RESOURCE-005";
+            diagnostic.code = "HYCEL-RESOURCE-005";
             diagnostic.file = Some(file.to_owned());
             "$.source".clone_into(&mut diagnostic.path);
             diagnostics.push(diagnostic);
@@ -418,7 +418,7 @@ impl ResourceRegistry {
     ) -> Result<(), Diagnostic> {
         if !valid_component_type(kind) {
             return Err(Diagnostic::new(
-                "MYCEL-RESOURCE-REGISTRY-001",
+                "HYCEL-RESOURCE-REGISTRY-001",
                 None,
                 kind,
                 "invalid resource kind identifier",
@@ -435,7 +435,7 @@ impl ResourceRegistry {
                     .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
         }) {
             return Err(Diagnostic::new(
-                "MYCEL-RESOURCE-REGISTRY-002",
+                "HYCEL-RESOURCE-REGISTRY-002",
                 None,
                 kind,
                 "setting names must be lowercase ASCII identifiers",
@@ -443,7 +443,7 @@ impl ResourceRegistry {
         }
         if self.definitions.insert(kind.to_owned(), settings).is_some() {
             return Err(Diagnostic::new(
-                "MYCEL-RESOURCE-REGISTRY-003",
+                "HYCEL-RESOURCE-REGISTRY-003",
                 None,
                 kind,
                 "resource kind is already registered",
@@ -509,13 +509,13 @@ pub fn validate_project_documents(
                         match component.data.get(field).and_then(Value::as_str) {
                             Some(target) if targets.contains(target) => {}
                             Some(_) => diagnostics.push(Diagnostic::new(
-                                "MYCEL-PROJECT-002",
+                                "HYCEL-PROJECT-002",
                                 Some(file),
                                 path,
                                 format!("referenced {kind} UUID does not exist in this project"),
                             )),
                             None => diagnostics.push(Diagnostic::new(
-                                "MYCEL-PROJECT-003",
+                                "HYCEL-PROJECT-003",
                                 Some(file),
                                 path,
                                 format!("reference to {kind} must be a UUID string"),
@@ -542,7 +542,7 @@ fn insert_project_id(
 ) {
     if let Some((first_file, first_path)) = ids.get(id) {
         diagnostics.push(Diagnostic::new(
-            "MYCEL-PROJECT-001",
+            "HYCEL-PROJECT-001",
             Some(file),
             path,
             format!("UUID duplicates {first_file}:{first_path}"),
@@ -583,7 +583,7 @@ impl ComponentRegistry {
     ) -> Result<(), Diagnostic> {
         if !valid_component_type(component_type) || schema_version == 0 {
             return Err(Diagnostic::new(
-                "MYCEL-REGISTRY-001",
+                "HYCEL-REGISTRY-001",
                 None,
                 component_type,
                 "invalid component type or schema version",
@@ -597,7 +597,7 @@ impl ComponentRegistry {
                     .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
         }) {
             return Err(Diagnostic::new(
-                "MYCEL-REGISTRY-002",
+                "HYCEL-REGISTRY-002",
                 None,
                 component_type,
                 "component payload field names must be lowercase ASCII identifiers",
@@ -605,7 +605,7 @@ impl ComponentRegistry {
         }
         if self.definitions.contains_key(component_type) {
             return Err(Diagnostic::new(
-                "MYCEL-REGISTRY-003",
+                "HYCEL-REGISTRY-003",
                 None,
                 component_type,
                 "component type is already registered",
@@ -658,7 +658,7 @@ impl ComponentRegistry {
     ) -> Result<(), Diagnostic> {
         let Some(definition) = self.definitions.get_mut(component_type) else {
             return Err(Diagnostic::new(
-                "MYCEL-REGISTRY-004",
+                "HYCEL-REGISTRY-004",
                 None,
                 component_type,
                 "component type is not registered",
@@ -666,7 +666,7 @@ impl ComponentRegistry {
         };
         if !definition.fields.contains(field) {
             return Err(Diagnostic::new(
-                "MYCEL-REGISTRY-005",
+                "HYCEL-REGISTRY-005",
                 None,
                 field,
                 "reference field is not in the component schema",
@@ -767,7 +767,7 @@ impl SceneDocument {
     ) -> Result<Self, Vec<Diagnostic>> {
         if input.len() > MAX_DOCUMENT_BYTES {
             return Err(vec![Diagnostic::new(
-                "MYCEL-DOCUMENT-001",
+                "HYCEL-DOCUMENT-001",
                 Some(file),
                 "$",
                 format!("document exceeds the {MAX_DOCUMENT_BYTES}-byte limit"),
@@ -775,7 +775,7 @@ impl SceneDocument {
         }
         let scene: Self = serde_json::from_slice(input).map_err(|error| {
             vec![Diagnostic::new(
-                "MYCEL-SCENE-001",
+                "HYCEL-SCENE-001",
                 Some(file),
                 "$",
                 format!(
@@ -794,7 +794,7 @@ impl SceneDocument {
         let mut diagnostics = Vec::new();
         if self.schema_version != 1 {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-SCENE-002",
+                "HYCEL-SCENE-002",
                 Some(file),
                 "$.schema_version",
                 "unsupported scene schema version",
@@ -802,7 +802,7 @@ impl SceneDocument {
         }
         if let Err(message) = validate_uuid(&self.id) {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-SCENE-003",
+                "HYCEL-SCENE-003",
                 Some(file),
                 "$.id",
                 message,
@@ -811,7 +811,7 @@ impl SceneDocument {
         validate_name(&self.name, "$.name", file, &mut diagnostics);
         if self.entities.len() > MAX_ENTITIES_PER_SCENE {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-SCENE-004",
+                "HYCEL-SCENE-004",
                 Some(file),
                 "$.entities",
                 format!("scene exceeds the {MAX_ENTITIES_PER_SCENE}-entity limit"),
@@ -824,7 +824,7 @@ impl SceneDocument {
             let base = format!("$.entities[{index}]");
             if let Err(message) = validate_uuid(&entity.id) {
                 diagnostics.push(Diagnostic::new(
-                    "MYCEL-SCENE-005",
+                    "HYCEL-SCENE-005",
                     Some(file),
                     format!("{base}.id"),
                     message,
@@ -832,7 +832,7 @@ impl SceneDocument {
             }
             if !ids.insert(entity.id.as_str()) {
                 diagnostics.push(Diagnostic::new(
-                    "MYCEL-SCENE-006",
+                    "HYCEL-SCENE-006",
                     Some(file),
                     format!("{base}.id"),
                     "duplicate entity UUID",
@@ -846,7 +846,7 @@ impl SceneDocument {
             );
             if entity.components.len() > MAX_COMPONENTS_PER_ENTITY {
                 diagnostics.push(Diagnostic::new(
-                    "MYCEL-SCENE-007",
+                    "HYCEL-SCENE-007",
                     Some(file),
                     format!("{base}.components"),
                     format!("entity exceeds the {MAX_COMPONENTS_PER_ENTITY}-component limit"),
@@ -857,7 +857,7 @@ impl SceneDocument {
                 let component_path = format!("{base}.components[{component_index}]");
                 if !valid_component_type(&component.component_type) {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-SCENE-008",
+                        "HYCEL-SCENE-008",
                         Some(file),
                         format!("{component_path}.type"),
                         "component type must be a lowercase dotted identifier",
@@ -865,7 +865,7 @@ impl SceneDocument {
                 }
                 if component.schema_version == 0 {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-SCENE-009",
+                        "HYCEL-SCENE-009",
                         Some(file),
                         format!("{component_path}.schema_version"),
                         "component schema version must be positive",
@@ -873,7 +873,7 @@ impl SceneDocument {
                 }
                 match registry.definitions.get(&component.component_type) {
                     None => diagnostics.push(Diagnostic::new(
-                        "MYCEL-SCENE-015",
+                        "HYCEL-SCENE-015",
                         Some(file),
                         format!("{component_path}.type"),
                         "component type is not registered",
@@ -881,7 +881,7 @@ impl SceneDocument {
                     Some(definition) => {
                         if component.schema_version != definition.schema_version {
                             diagnostics.push(Diagnostic::new(
-                                "MYCEL-SCENE-016",
+                                "HYCEL-SCENE-016",
                                 Some(file),
                                 format!("{component_path}.schema_version"),
                                 "component schema version is not registered",
@@ -893,7 +893,7 @@ impl SceneDocument {
                             .find(|field| !definition.fields.contains(*field))
                         {
                             diagnostics.push(Diagnostic::new(
-                                "MYCEL-SCENE-017",
+                                "HYCEL-SCENE-017",
                                 Some(file),
                                 format!("{component_path}.data.{field}"),
                                 "unknown component payload field",
@@ -903,7 +903,7 @@ impl SceneDocument {
                             && !component_types.insert(component.component_type.as_str())
                         {
                             diagnostics.push(Diagnostic::new(
-                                "MYCEL-SCENE-010",
+                                "HYCEL-SCENE-010",
                                 Some(file),
                                 format!("{component_path}.type"),
                                 "component type is not repeatable on one entity",
@@ -923,7 +923,7 @@ impl SceneDocument {
             if let Some(parent) = &entity.parent {
                 if validate_uuid(parent).is_err() || !entity_ids.contains(parent.as_str()) {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-SCENE-011",
+                        "HYCEL-SCENE-011",
                         Some(file),
                         format!("$.entities[{index}].parent"),
                         "parent must reference an entity UUID in this scene",
@@ -931,7 +931,7 @@ impl SceneDocument {
                 }
                 if parent == &entity.id {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-SCENE-012",
+                        "HYCEL-SCENE-012",
                         Some(file),
                         format!("$.entities[{index}].parent"),
                         "entity cannot be its own parent",
@@ -963,7 +963,7 @@ impl SceneDocument {
                 }
                 if !chain.insert(id) {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-SCENE-013",
+                        "HYCEL-SCENE-013",
                         Some(file),
                         "$.entities",
                         format!("parent hierarchy contains a cycle involving entity {id}"),
@@ -1085,7 +1085,7 @@ fn read_limited_file(path: &Path, limit: usize) -> std::io::Result<Vec<u8>> {
 pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec<Diagnostic>> {
     let canonical_root = project_root.canonicalize().map_err(|error| {
         vec![Diagnostic::new(
-            "MYCEL-PROJECT-004",
+            "HYCEL-PROJECT-004",
             None,
             "project_root",
             format!("cannot resolve project root: {error}"),
@@ -1093,7 +1093,7 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
     })?;
     if !canonical_root.is_dir() {
         return Err(vec![Diagnostic::new(
-            "MYCEL-PROJECT-005",
+            "HYCEL-PROJECT-005",
             None,
             "project_root",
             "project root is not a directory",
@@ -1104,42 +1104,42 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
         match resolve_existing_project_path(&canonical_root, relative) {
             Ok(path) if path.is_dir() => {}
             Ok(_) => diagnostics.push(Diagnostic::new(
-                "MYCEL-PROJECT-006",
+                "HYCEL-PROJECT-006",
                 Some(relative),
                 "$",
                 "required content root is not a directory",
             )),
             Err(mut diagnostic) => {
-                diagnostic.code = "MYCEL-PROJECT-007";
+                diagnostic.code = "HYCEL-PROJECT-007";
                 diagnostics.push(diagnostic);
             }
         }
     }
-    for generated in ["build", ".mycel"] {
+    for generated in ["build", ".hycel"] {
         let path = canonical_root.join(generated);
         if std::fs::symlink_metadata(&path).is_ok() {
             match resolve_existing_project_path(&canonical_root, generated) {
                 Ok(_) => {}
                 Err(mut diagnostic) => {
-                    diagnostic.code = "MYCEL-PROJECT-008";
+                    diagnostic.code = "HYCEL-PROJECT-008";
                     diagnostics.push(diagnostic);
                 }
             }
         }
     }
-    let manifest_path = match resolve_existing_project_path(&canonical_root, "mycel.toml") {
+    let manifest_path = match resolve_existing_project_path(&canonical_root, "hycel.toml") {
         Ok(path) if path.is_file() => Some(path),
         Ok(_) => {
             diagnostics.push(Diagnostic::new(
-                "MYCEL-PROJECT-009",
-                Some("mycel.toml"),
+                "HYCEL-PROJECT-009",
+                Some("hycel.toml"),
                 "$",
                 "project manifest is not a regular file",
             ));
             None
         }
         Err(mut diagnostic) => {
-            diagnostic.code = "MYCEL-PROJECT-010";
+            diagnostic.code = "HYCEL-PROJECT-010";
             diagnostics.push(diagnostic);
             None
         }
@@ -1156,8 +1156,8 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
                 },
                 Err(error) => {
                     diagnostics.push(Diagnostic::new(
-                        "MYCEL-MANIFEST-002",
-                        Some("mycel.toml"),
+                        "HYCEL-MANIFEST-002",
+                        Some("hycel.toml"),
                         "$",
                         format!("manifest is not valid UTF-8: {error}"),
                     ));
@@ -1166,8 +1166,8 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
             },
             Err(error) if error.kind() == std::io::ErrorKind::InvalidData => {
                 diagnostics.push(Diagnostic::new(
-                    "MYCEL-MANIFEST-001",
-                    Some("mycel.toml"),
+                    "HYCEL-MANIFEST-001",
+                    Some("hycel.toml"),
                     "$",
                     format!("manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit"),
                 ));
@@ -1175,8 +1175,8 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
             }
             Err(error) => {
                 diagnostics.push(Diagnostic::new(
-                    "MYCEL-PROJECT-011",
-                    Some("mycel.toml"),
+                    "HYCEL-PROJECT-011",
+                    Some("hycel.toml"),
                     "$",
                     format!("cannot read project manifest: {error}"),
                 ));
@@ -1190,8 +1190,8 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
         (Some(manifest), true) => Ok(manifest),
         (_, false) => Err(diagnostics),
         (None, true) => Err(vec![Diagnostic::new(
-            "MYCEL-PROJECT-012",
-            Some("mycel.toml"),
+            "HYCEL-PROJECT-012",
+            Some("hycel.toml"),
             "$",
             "project validation completed without a parsed manifest",
         )]),
@@ -1216,7 +1216,7 @@ pub fn validate_relative_project_path(path: &str) -> Result<(), Diagnostic> {
             .any(|part| part.is_empty() || part == "." || part == ".." || part.contains(':'));
     if invalid {
         return Err(Diagnostic::new(
-            "MYCEL-PATH-001",
+            "HYCEL-PATH-001",
             None,
             "path",
             "path must be a non-empty UTF-8 project-relative path without traversal, absolute prefixes, or backslashes",
@@ -1239,7 +1239,7 @@ pub fn resolve_existing_project_path(
     validate_relative_project_path(relative_path)?;
     let canonical_root = project_root.canonicalize().map_err(|error| {
         Diagnostic::new(
-            "MYCEL-PATH-002",
+            "HYCEL-PATH-002",
             None,
             "project_root",
             format!("cannot resolve project root: {error}"),
@@ -1250,7 +1250,7 @@ pub fn resolve_existing_project_path(
         .canonicalize()
         .map_err(|error| {
             Diagnostic::new(
-                "MYCEL-PATH-003",
+                "HYCEL-PATH-003",
                 Some(relative_path),
                 "$",
                 format!("project path cannot be resolved: {error}"),
@@ -1258,7 +1258,7 @@ pub fn resolve_existing_project_path(
         })?;
     if !candidate.starts_with(&canonical_root) {
         return Err(Diagnostic::new(
-            "MYCEL-PATH-004",
+            "HYCEL-PATH-004",
             Some(relative_path),
             "$",
             "resolved path escapes the canonical project root",
@@ -1303,7 +1303,7 @@ fn valid_component_type(value: &str) -> bool {
 fn validate_name(value: &str, path: &str, file: &str, diagnostics: &mut Vec<Diagnostic>) {
     if value.trim().is_empty() || value.len() > 256 {
         diagnostics.push(Diagnostic::new(
-            "MYCEL-SCENE-014",
+            "HYCEL-SCENE-014",
             Some(file),
             path,
             "name must contain 1–256 non-whitespace UTF-8 bytes",
@@ -1315,11 +1315,11 @@ fn validate_name(value: &str, path: &str, file: &str, diagnostics: &mut Vec<Diag
 mod tests {
     use super::{
         ComponentRegistry, MAX_DOCUMENT_BYTES, MAX_MANIFEST_BYTES, ProjectManifest,
-        ResourceDescriptor, ResourceRegistry, SceneDocument, resolve_existing_project_path,
-        validate_project_documents, validate_relative_project_path,
+        ResourceDescriptor, ResourceRegistry, SceneDocument, validate_project_documents,
+        validate_relative_project_path,
     };
 
-    const MANIFEST: &str = include_str!("../../../examples/empty-project/mycel.toml");
+    const MANIFEST: &str = include_str!("../../../examples/empty-project/hycel.toml");
     const SCENE: &[u8] = include_bytes!("../../../examples/empty-project/scenes/first-room.json");
 
     #[test]
@@ -1337,12 +1337,12 @@ mod tests {
         let unknown = format!("{MANIFEST}\ntelemetry = true\n");
         assert_eq!(
             ProjectManifest::parse_toml(&unknown).unwrap_err().code,
-            "MYCEL-MANIFEST-002"
+            "HYCEL-MANIFEST-002"
         );
         let bad_version = MANIFEST.replace("format_version = 1", "format_version = 2");
         assert_eq!(
             ProjectManifest::parse_toml(&bad_version).unwrap_err().code,
-            "MYCEL-MANIFEST-003"
+            "HYCEL-MANIFEST-003"
         );
         let bad_default = MANIFEST.replace(
             "default_profile = \"development\"",
@@ -1350,7 +1350,7 @@ mod tests {
         );
         assert_eq!(
             ProjectManifest::parse_toml(&bad_default).unwrap_err().code,
-            "MYCEL-MANIFEST-010"
+            "HYCEL-MANIFEST-010"
         );
     }
 
@@ -1359,7 +1359,7 @@ mod tests {
         let oversized = " ".repeat(MAX_MANIFEST_BYTES + 1);
         assert_eq!(
             ProjectManifest::parse_toml(&oversized).unwrap_err().code,
-            "MYCEL-MANIFEST-001"
+            "HYCEL-MANIFEST-001"
         );
     }
 
@@ -1367,12 +1367,12 @@ mod tests {
     fn scene_rejects_unknown_and_duplicate_fields() {
         let unknown = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[],"unknown":1}"#;
         let error = SceneDocument::parse_json(unknown, "scenes/room.json").unwrap_err();
-        assert_eq!(error[0].code, "MYCEL-SCENE-001");
+        assert_eq!(error[0].code, "HYCEL-SCENE-001");
         assert_eq!(error[0].file.as_deref(), Some("scenes/room.json"));
         let duplicate = br#"{"schema_version":1,"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[]}"#;
         assert_eq!(
             SceneDocument::parse_json(duplicate, "room.json").unwrap_err()[0].code,
-            "MYCEL-SCENE-001"
+            "HYCEL-SCENE-001"
         );
     }
 
@@ -1383,21 +1383,21 @@ mod tests {
             SceneDocument::parse_json(duplicate, "room.json")
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-006")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-006")
         );
         let missing_parent = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","parent":"20000000-0000-4000-8000-000000000002"}]}"#;
         assert!(
             SceneDocument::parse_json(missing_parent, "room.json")
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-011")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-011")
         );
         let cycle = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","parent":"20000000-0000-4000-8000-000000000002"},{"id":"20000000-0000-4000-8000-000000000002","name":"B","parent":"20000000-0000-4000-8000-000000000001"}]}"#;
         assert!(
             SceneDocument::parse_json(cycle, "room.json")
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-013")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-013")
         );
     }
 
@@ -1411,12 +1411,12 @@ mod tests {
         assert!(
             diagnostics
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-008")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-008")
         );
         assert!(
             diagnostics
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-009")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-009")
         );
     }
 
@@ -1425,7 +1425,7 @@ mod tests {
         let oversized = vec![b' '; MAX_DOCUMENT_BYTES + 1];
         assert_eq!(
             SceneDocument::parse_json(&oversized, "room.json").unwrap_err()[0].code,
-            "MYCEL-DOCUMENT-001"
+            "HYCEL-DOCUMENT-001"
         );
     }
 
@@ -1434,27 +1434,27 @@ mod tests {
         let mut registry = ComponentRegistry::default();
         registry
             .register(
-                "mycel.platformer.body",
+                "hycel.platformer.body",
                 1,
                 false,
                 ["speed", "jump_strength"],
             )
             .unwrap();
-        let valid = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","components":[{"type":"mycel.platformer.body","schema_version":1,"data":{"speed":5}}]}]}"#;
+        let valid = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","components":[{"type":"hycel.platformer.body","schema_version":1,"data":{"speed":5}}]}]}"#;
         assert!(SceneDocument::parse_json_with_registry(valid, "room.json", &registry).is_ok());
-        let unknown_field = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","components":[{"type":"mycel.platformer.body","schema_version":1,"data":{"speeed":5}}]}]}"#;
+        let unknown_field = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","components":[{"type":"hycel.platformer.body","schema_version":1,"data":{"speeed":5}}]}]}"#;
         assert!(
             SceneDocument::parse_json_with_registry(unknown_field, "room.json", &registry)
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-017")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-017")
         );
-        let unknown_type = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","components":[{"type":"mycel.unknown","schema_version":1,"data":{}}]}]}"#;
+        let unknown_type = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"A","components":[{"type":"hycel.unknown","schema_version":1,"data":{}}]}]}"#;
         assert!(
             SceneDocument::parse_json_with_registry(unknown_type, "room.json", &registry)
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-SCENE-015")
+                .any(|diagnostic| diagnostic.code == "HYCEL-SCENE-015")
         );
     }
 
@@ -1462,12 +1462,12 @@ mod tests {
     fn project_validator_checks_global_ids_and_declared_resource_references() {
         let mut registry = ComponentRegistry::default();
         registry
-            .register("mycel.sprite", 1, false, ["texture"])
+            .register("hycel.sprite", 1, false, ["texture"])
             .unwrap();
         registry
-            .mark_resource_reference("mycel.sprite", "texture")
+            .mark_resource_reference("hycel.sprite", "texture")
             .unwrap();
-        let scene_json = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"Player","components":[{"type":"mycel.sprite","schema_version":1,"data":{"texture":"30000000-0000-4000-8000-000000000001"}}]}]}"#;
+        let scene_json = br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{"id":"20000000-0000-4000-8000-000000000001","name":"Player","components":[{"type":"hycel.sprite","schema_version":1,"data":{"texture":"30000000-0000-4000-8000-000000000001"}}]}]}"#;
         let scene =
             SceneDocument::parse_json_with_registry(scene_json, "scenes/room.json", &registry)
                 .unwrap();
@@ -1478,33 +1478,33 @@ mod tests {
         let resource_json = br#"{"schema_version":1,"id":"30000000-0000-4000-8000-000000000001","kind":"texture","source":"sprites/player.png","import":{}}"#;
         let resource = ResourceDescriptor::parse_json_with_registry(
             resource_json,
-            "assets/player.mycel.json",
+            "assets/player.hycel.json",
             &resource_registry,
         )
         .unwrap();
         let scenes = vec![("scenes/room.json".to_owned(), scene.clone())];
-        let resources = vec![("assets/player.mycel.json".to_owned(), resource)];
+        let resources = vec![("assets/player.hycel.json".to_owned(), resource)];
         assert!(validate_project_documents(&scenes, &resources, &registry).is_ok());
         assert!(
             validate_project_documents(&scenes, &[], &registry)
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-PROJECT-002")
+                .any(|diagnostic| diagnostic.code == "HYCEL-PROJECT-002")
         );
         let duplicate = ResourceDescriptor::parse_json_with_registry(
             br#"{"schema_version":1,"id":"10000000-0000-4000-8000-000000000001","kind":"texture","source":"sprites/duplicate.png","import":{}}"#,
-            "assets/duplicate.mycel.json",
+            "assets/duplicate.hycel.json",
             &resource_registry,
         ).unwrap();
         assert!(
             validate_project_documents(
                 &scenes,
-                &[("assets/duplicate.mycel.json".to_owned(), duplicate)],
+                &[("assets/duplicate.hycel.json".to_owned(), duplicate)],
                 &registry,
             )
             .unwrap_err()
             .iter()
-            .any(|diagnostic| diagnostic.code == "MYCEL-PROJECT-001")
+            .any(|diagnostic| diagnostic.code == "HYCEL-PROJECT-001")
         );
     }
 
@@ -1518,12 +1518,12 @@ mod tests {
         assert_eq!(
             ResourceDescriptor::parse_json_with_registry(
                 data,
-                "assets/player.mycel.json",
+                "assets/player.hycel.json",
                 &registry
             )
             .unwrap_err()[0]
                 .code,
-            "MYCEL-RESOURCE-005"
+            "HYCEL-RESOURCE-005"
         );
     }
 
@@ -1534,7 +1534,7 @@ mod tests {
         use std::sync::atomic::{AtomicU64, Ordering};
         static NEXT: AtomicU64 = AtomicU64::new(100);
         let base = std::env::temp_dir().join(format!(
-            "mycel-project-root-test-{}-{}",
+            "hycel-project-root-test-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -1542,16 +1542,16 @@ mod tests {
         std::fs::create_dir_all(project.join("src")).unwrap();
         std::fs::create_dir_all(project.join("assets")).unwrap();
         std::fs::create_dir_all(project.join("scenes")).unwrap();
-        std::fs::write(project.join("mycel.toml"), MANIFEST).unwrap();
+        std::fs::write(project.join("hycel.toml"), MANIFEST).unwrap();
         assert!(super::validate_project_root(&project).is_ok());
         let outside = base.join("outside");
         std::fs::create_dir(&outside).unwrap();
-        symlink(&outside, project.join(".mycel")).unwrap();
+        symlink(&outside, project.join(".hycel")).unwrap();
         assert!(
             super::validate_project_root(&project)
                 .unwrap_err()
                 .iter()
-                .any(|diagnostic| diagnostic.code == "MYCEL-PROJECT-008")
+                .any(|diagnostic| diagnostic.code == "HYCEL-PROJECT-008")
         );
         std::fs::remove_dir_all(base).unwrap();
     }
@@ -1563,7 +1563,7 @@ mod tests {
         use std::sync::atomic::{AtomicU64, Ordering};
         static NEXT: AtomicU64 = AtomicU64::new(0);
         let base = std::env::temp_dir().join(format!(
-            "mycel-path-test-{}-{}",
+            "hycel-path-test-{}-{}",
             std::process::id(),
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
@@ -1573,10 +1573,10 @@ mod tests {
         std::fs::write(&outside, b"outside").unwrap();
         symlink(&outside, project.join("escape.txt")).unwrap();
         assert_eq!(
-            resolve_existing_project_path(&project, "escape.txt")
+            super::resolve_existing_project_path(&project, "escape.txt")
                 .unwrap_err()
                 .code,
-            "MYCEL-PATH-004"
+            "HYCEL-PATH-004"
         );
         std::fs::remove_dir_all(base).unwrap();
     }

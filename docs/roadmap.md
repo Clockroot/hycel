@@ -1,10 +1,10 @@
-# Mycel roadmap to 1.0
+# Hycel roadmap to 1.0
 
 This roadmap describes the path from the current kernel to a stable first release. It is outcome- and gate-based, not date-based: phases finish when their exit criteria are met, not when a calendar estimate expires. Subphases may overlap only when their dependencies are satisfied. Revisit scope after each phase; do not add features that threaten the 1.0 reliability bar.
 
 ## 1.0 destination
 
-Mycel 1.0 will let a developer create, edit, build, run, test, and ship a small 2D desktop game on macOS, Linux, and Windows on x86-64 and ARM64. Its project data and core commands will be understandable to a person or AI agent, and its simulation will be inspectable and replayable. A small sample game will prove the complete workflow.
+Hycel 1.0 will let a developer create, edit, build, run, test, and ship a small 2D desktop game on macOS, Linux, and Windows on x86-64 and ARM64. Its project data and core commands will be understandable to a person or AI agent, and its simulation will be inspectable and replayable. A small sample game will prove the complete workflow.
 
 This does **not** promise a general-purpose 3D engine, consoles/mobile, multiplayer framework, visual scripting, or feature parity with mature commercial engines. 1.0 stability means documented and tested formats/APIs with explicit compatibility policy—not a claim that every imaginable game is supported.
 
@@ -17,7 +17,7 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 5. **Core 2D game capabilities** — provide only the gameplay systems needed for a small complete game.
 6. **Agent-native interface** — make human and agent workflows use the same stable, testable application services.
 7. **Editor and content workflow** — add a useful visual authoring layer without making it the source of truth.
-8. **Complete sample game and user experience** — prove Mycel by building and shipping a real small game with it.
+8. **Complete sample game and user experience** — prove Hycel by building and shipping a real small game with it.
 9. **Hardening, compatibility, and release candidate** — test failure modes, compatibility, performance, packaging, and usability.
 10. **1.0 release and maintenance readiness** — freeze contracts, publish artifacts, and establish the support process.
 
@@ -25,16 +25,16 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ## Phase 1 — Project foundation and product contract
 
-**Outcome:** Mycel's first-release boundaries are explicit, and the repository can safely grow without premature commitments.
+**Outcome:** Hycel's first-release boundaries are explicit, and the repository can safely grow without premature commitments.
 
 ### Subphases
 
-1. **1.1 — Confirm product scope — COMPLETE.** Mycel is Rust-first, 2D, and desktop-focused. 1.0 explicitly promises small single-player side-view platformers at the scale defined in [`product-scope.md`](product-scope.md); general-purpose 3D and networking are out of scope.
-2. **1.2 — Make the support matrix executable — COMPLETE.** Exact OS/architecture pairs, minimum OS floors, Rust MSRV/stable policy, and planned native graphics backends are recorded in [`support-matrix.md`](support-matrix.md). Its six native target rows drive CI. The revised MSRV 1.87.0 and six-row matrix passed native quality jobs, MSRV, docs, dependency audit, and renderer-probe builds in [CI run 36815524964](https://github.com/aaf2tbz/mycel/actions/runs/36815524964). Engine/runtime targets remain experimental until minimum-OS and packaging tests pass.
+1. **1.1 — Confirm product scope — COMPLETE.** Hycel is Rust-first, 2D, and desktop-focused. 1.0 explicitly promises small single-player side-view platformers at the scale defined in [`product-scope.md`](product-scope.md); general-purpose 3D and networking are out of scope.
+2. **1.2 — Make the support matrix executable — COMPLETE.** Exact OS/architecture pairs, minimum OS floors, Rust MSRV/stable policy, and planned native graphics backends are recorded in [`support-matrix.md`](support-matrix.md). Its six native target rows drive CI. The revised MSRV 1.87.0 and six-row matrix passed native quality jobs, MSRV, docs, dependency audit, and renderer-probe builds in [CI run 36815524964](https://github.com/aaf2tbz/hycel/actions/runs/36815524964). Engine/runtime targets remain experimental until minimum-OS and packaging tests pass.
 3. **1.3 — Establish engineering contracts — COMPLETE.** [`engineering-contracts.md`](engineering-contracts.md) and linked contributor/security guidance define crate boundaries, workspace unsafe-code prohibition, dependency review/audit, error policy, transactional data safety, local-first privacy, and no telemetry by default. The MSRV is 1.87.0 by explicit user decision to evaluate current wgpu 30 without the unmaintained transitive Metal dependency found in wgpu 26.
 4. **1.4 — Set repository hygiene — COMPLETE.** Added issue forms, pull-request template, code of conduct, Keep a Changelog file/release categories, ownership and triage rules, CODEOWNERS, and CI-generated Cargo metadata/license inventory with pinned cargo-deny checks.
 5. **1.5 — Run feasibility spikes — COMPLETE.** An isolated wgpu 30.0.1 + winit 0.30.13 probe builds on all six native OS/architecture rows. Runtime clear/present smoke passed on hosted macOS ARM64 (Metal, 99 frames), Linux x86-64 (llvmpipe/Vulkan, 5,181 frames), and Windows x86-64 (Microsoft Basic Render Driver/D3D12, 176 frames); local Apple M4/Metal also passed. Keyboard mapping has unit coverage. The user accepted [`ADR 0001`](adr/0001-windowing-and-renderer.md) as the Phase 4 candidate; these dependencies remain isolated until Phase 4.1 revalidation. Software adapters are CI feasibility only, not an end-user fallback promise.
-6. **1.6 — Measure an initial clean build — COMPLETE.** The contributor setup passed on a fresh Ubuntu 24.04 hosted runner. [CI run 36815524964](https://github.com/aaf2tbz/mycel/actions/runs/36815524964) measured Rust 1.87.0 build/test at 0.21/0.25 seconds, stable 1.98.1 build/test at 0.59/0.17 seconds, and demo run at 0.15 seconds. Details and artifact reference are in [`development-baseline.md`](development-baseline.md).
+6. **1.6 — Measure an initial clean build — COMPLETE.** The contributor setup passed on a fresh Ubuntu 24.04 hosted runner. [CI run 36815524964](https://github.com/aaf2tbz/hycel/actions/runs/36815524964) measured Rust 1.87.0 build/test at 0.21/0.25 seconds, stable 1.98.1 build/test at 0.59/0.17 seconds, and demo run at 0.15 seconds. Details and artifact reference are in [`development-baseline.md`](development-baseline.md).
 
 **Exit gate:** Product scope, declared support matrix, security/data principles, and renderer/platform decision are written down. All accepted CI runner labels work in a test workflow. No major technical unknown blocks the 2D vertical slice.
 
@@ -44,24 +44,24 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ### Subphases
 
-1. **2.1 — Specify time and catch-up policy — COMPLETE.** `mycel-core::FixedClock` uses a 60 Hz initial default and host-supplied integer nanoseconds; `TimeScale` uses deterministic Q32.32 ratios, including zero-scale pause; interactive advancement is explicitly capped (default eight steps), reports dropped whole wall-time debt, preserves the fractional remainder, and never skips logical tick IDs. Tests cover rate, drift, pause, slow motion, catch-up, and failure atomicity.
-2. **2.2 — Establish world primitives — COMPLETE.** Added generation-checked `EntityId` allocation/reuse, live-entity iteration, typed deterministic `ComponentStorage<T>`, explicit despawn/stale-component cleanup rules, fixed-point `SimScalar`, `Vec2`, `Angle`, and `Transform2D` in `mycel-core`. The APIs are documented in source and [`architecture.md`](architecture.md); tests cover reuse, stale handles, deterministic iteration, cleanup, math conventions, and arithmetic failures.
-3. **2.3 — Build the deterministic schedule — COMPLETE.** `mycel-core::Schedule<State, Event>` freezes a serial `(order, SystemId)` system order before tick zero, consumes tick-matched ordered `InputFrame`s, derives independent PCG-XSH-RR 64/32 RNG streams from the seed/base stream/system ID, and delivers events next tick in canonical order. Tick errors restore cloned state, RNG, and pending events; callbacks are contractually forbidden from external side effects. The platformer demo now runs through this schedule.
-4. **2.4 — Add replay and state inspection — COMPLETE.** `Replay` stores strict, bounded schema-1 JSON with engine/target/tick-rate/seed/stream metadata and contiguous input frames; playback validates compatibility and runs headlessly through the same schedule. `CanonicalState` supplies a versioned SHA-256 encoder with deterministic world/component/math implementations. The demo records, serializes, reloads, replays, and asserts a matching state hash; same-target determinism is covered, with no cross-architecture guarantee claimed. Dependency and format decisions are in [`ADR 0002`](adr/0002-replay-format-and-state-hash.md). All six native target jobs, including the replay/hash test suite, passed in [CI run 36875349085](https://github.com/aaf2tbz/mycel/actions/runs/36875349085).
+1. **2.1 — Specify time and catch-up policy — COMPLETE.** `hycel-core::FixedClock` uses a 60 Hz initial default and host-supplied integer nanoseconds; `TimeScale` uses deterministic Q32.32 ratios, including zero-scale pause; interactive advancement is explicitly capped (default eight steps), reports dropped whole wall-time debt, preserves the fractional remainder, and never skips logical tick IDs. Tests cover rate, drift, pause, slow motion, catch-up, and failure atomicity.
+2. **2.2 — Establish world primitives — COMPLETE.** Added generation-checked `EntityId` allocation/reuse, live-entity iteration, typed deterministic `ComponentStorage<T>`, explicit despawn/stale-component cleanup rules, fixed-point `SimScalar`, `Vec2`, `Angle`, and `Transform2D` in `hycel-core`. The APIs are documented in source and [`architecture.md`](architecture.md); tests cover reuse, stale handles, deterministic iteration, cleanup, math conventions, and arithmetic failures.
+3. **2.3 — Build the deterministic schedule — COMPLETE.** `hycel-core::Schedule<State, Event>` freezes a serial `(order, SystemId)` system order before tick zero, consumes tick-matched ordered `InputFrame`s, derives independent PCG-XSH-RR 64/32 RNG streams from the seed/base stream/system ID, and delivers events next tick in canonical order. Tick errors restore cloned state, RNG, and pending events; callbacks are contractually forbidden from external side effects. The platformer demo now runs through this schedule.
+4. **2.4 — Add replay and state inspection — COMPLETE.** `Replay` stores strict, bounded schema-1 JSON with engine/target/tick-rate/seed/stream metadata and contiguous input frames; playback validates compatibility and runs headlessly through the same schedule. `CanonicalState` supplies a versioned SHA-256 encoder with deterministic world/component/math implementations. The demo records, serializes, reloads, replays, and asserts a matching state hash; same-target determinism is covered, with no cross-architecture guarantee claimed. Dependency and format decisions are in [`ADR 0002`](adr/0002-replay-format-and-state-hash.md). All six native target jobs, including the replay/hash test suite, passed in [CI run 36875349085](https://github.com/aaf2tbz/hycel/actions/runs/36875349085).
 5. **2.5 — Specify concurrency boundaries — COMPLETE.** The authoritative simulation schedule is serial and single-threaded; callbacks have isolated deterministic RNG and next-tick event interfaces. Worker threads may prepare immutable presentation/build/asset results, but may not mutate authoritative state or affect simulation ordering. Parallel simulation requires an explicit deterministic conflict/merge/failure model and cross-platform replay/hash evidence; see [`architecture.md`](architecture.md).
-6. **2.6 — Add invariants and regression tests — COMPLETE.** Tests cover pause/resume, bounded catch-up, stable IDs, deterministic system/event ordering, replay/hash equality, tick failure rollback, and explicit clock/schedule tick-overflow atomicity. Workspace tests and Clippy, MSRV tests, docs, dependency audits, and all six native targets passed in [CI run 36877007899](https://github.com/aaf2tbz/mycel/actions/runs/36877007899).
+6. **2.6 — Add invariants and regression tests — COMPLETE.** Tests cover pause/resume, bounded catch-up, stable IDs, deterministic system/event ordering, replay/hash equality, tick failure rollback, and explicit clock/schedule tick-overflow atomicity. Workspace tests and Clippy, MSRV tests, docs, dependency audits, and all six native targets passed in [CI run 36877007899](https://github.com/aaf2tbz/hycel/actions/runs/36877007899).
 
 **Exit gate:** Headless sample simulation can run, stop, replay, and report state with no window/GPU dependency. Repeated runs produce the same state hash on supported test targets; any cross-architecture guarantee is stated only if demonstrated.
 
 ## Phase 3 — Project, scene, and asset model
 
-**Outcome:** A Mycel project is readable, versioned, validated, diffable, and safe to migrate.
+**Outcome:** A Hycel project is readable, versioned, validated, diffable, and safe to migrate.
 
 ### Subphases
 
-1. **3.1 — Define project layout and manifest — COMPLETE.** [`project-format.md`](project-format.md) specifies the TOML manifest and JSON scene/resource contract, stable project identity, inclusive/exclusive engine SemVer compatibility range, fixed `src/`, `assets/`, and `scenes/` content roots, build profiles, generated directories, and path-boundary rules. A representative manifest is in [`examples/empty-project`](../examples/empty-project/mycel.toml).
+1. **3.1 — Define project layout and manifest — COMPLETE.** [`project-format.md`](project-format.md) specifies the TOML manifest and JSON scene/resource contract, stable project identity, inclusive/exclusive engine SemVer compatibility range, fixed `src/`, `assets/`, and `scenes/` content roots, build profiles, generated directories, and path-boundary rules. A representative manifest is in [`examples/empty-project`](../examples/empty-project/hycel.toml).
 2. **3.2 — Define scene/resource schemas — COMPLETE.** [`scene-format.md`](scene-format.md) defines bounded UTF-8 JSON scene/resource schema 1, canonical UUID identities distinct from runtime handles, parent/component/resource references, fixed-point transform defaults, authored ordering, and reject-unknown behavior. A sample scene is in [`examples/empty-project/scenes`](../examples/empty-project/scenes/first-room.json). Keep serialization separate from runtime implementation details.
-3. **3.3 — Implement strict validation — IMPLEMENTED; SIX-TARGET CI PENDING.** New `mycel-project` APIs bound TOML/JSON parsing, reject unknown/duplicate fields, validate manifest profiles and SemVer ranges, scene UUIDs/transforms/parents/cycles/component registries, project-wide IDs and declared entity/resource references, and project-relative paths including canonical symlink escapes. Diagnostics use stable `MYCEL-*` codes and retain file/path context. Tests pass locally; close after MSRV and six-target CI pass.
+3. **3.3 — Implement strict validation — IMPLEMENTED; SIX-TARGET CI PENDING.** New `hycel-project` APIs bound TOML/JSON parsing, reject unknown/duplicate fields, validate manifest profiles and SemVer ranges, scene UUIDs/transforms/parents/cycles/component registries, project-wide IDs and declared entity/resource references, and project-relative paths including canonical symlink escapes. Diagnostics use stable `HYCEL-*` codes and retain file/path context. Tests pass locally; close after MSRV and six-target CI pass.
 4. **3.4 — Implement transactional migration.** Version all persisted formats, preserve backups, write atomically, and test interrupted migrations and rollback. Never silently discard fields or overwrite user files.
 5. **3.5 — Establish asset identity and dependency tracking.** Hash source assets, record import settings/tool versions, report dependencies, and make reimport behavior explicit and reproducible.
 6. **3.6 — Add project CLI foundations.** Implement `new`, `check`, and `inspect` first; define human-readable and versioned JSON output, stable exit codes, and test fixtures.
@@ -75,7 +75,7 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 ### Subphases
 
 1. **4.1 — Finalize platform/rendering ADR.** Select window/input and renderer dependencies after evaluating maintenance, licenses, backend coverage, shader workflow, error recovery, packaging, and ARM64 behavior.
-2. **4.2 — Implement lifecycle and windowing.** Create a window, handle resize/focus/close, report platform failures clearly, and keep native types behind Mycel interfaces.
+2. **4.2 — Implement lifecycle and windowing.** Create a window, handle resize/focus/close, report platform failures clearly, and keep native types behind Hycel interfaces.
 3. **4.3 — Implement a minimal render path.** Clear/present, draw a colored shape and textured quad, handle camera/viewport transforms, and surface shader/device-loss errors without corrupting simulation state.
 4. **4.4 — Add 2D presentation basics.** Sprites, texture loading, camera, layers/order, color/alpha, and a basic text/debug overlay sufficient for the sample game.
 5. **4.5 — Normalize input.** Convert native keyboard/mouse events to stable tick-indexed action frames; support configurable bindings and focus-loss behavior.
@@ -132,16 +132,16 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ## Phase 8 — Complete sample game and user experience
 
-**Outcome:** Mycel proves its full lifecycle by creating, testing, packaging, and playing a polished small game.
+**Outcome:** Hycel proves its full lifecycle by creating, testing, packaging, and playing a polished small game.
 
 ### Subphases
 
 1. **8.1 — Freeze sample-game scope.** Select a compact 2D game that exercises scenes, assets, input, rendering, collisions, audio if included, save/load if included, and test/replay.
-2. **8.2 — Build the game entirely with Mycel.** No external-engine runtime or hand-edited build-machine state. Keep game source/assets in-repository or reproducibly fetchable.
+2. **8.2 — Build the game entirely with Hycel.** No external-engine runtime or hand-edited build-machine state. Keep game source/assets in-repository or reproducibly fetchable.
 3. **8.3 — Add gameplay test hooks.** Named scenarios, input recordings, deterministic assertions, known-good screenshots where stable, and failure artifacts usable by humans and agents.
 4. **8.4 — Package and run clean-room builds.** Produce native playable builds for declared target pairs; test install/launch/uninstall on clean environments and verify assets are included.
 5. **8.5 — Write the learning path.** Quickstart, first game, project anatomy, editor/CLI alternatives, agent guide, troubleshooting, and target-specific installation instructions.
-6. **8.6 — Conduct external usability sessions.** Test with a Rust developer new to Mycel, a game developer new to Rust, and an AI-assisted workflow. Track completion and confusion rather than relying on team intuition.
+6. **8.6 — Conduct external usability sessions.** Test with a Rust developer new to Hycel, a game developer new to Rust, and an AI-assisted workflow. Track completion and confusion rather than relying on team intuition.
 
 **Exit gate:** A clean user can follow the guide to run and modify the game; release candidates pass game tests and native packaging across the declared matrix; at least one independent agent completes a documented task.
 
@@ -164,7 +164,7 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ## Phase 10 — 1.0 release and maintenance readiness
 
-**Outcome:** Mycel 1.0 is installable, understandable, supportable, and has a clear compatibility and maintenance story.
+**Outcome:** Hycel 1.0 is installable, understandable, supportable, and has a clear compatibility and maintenance story.
 
 ### Subphases
 
@@ -194,4 +194,4 @@ These requirements apply throughout all phases, not just before 1.0:
 
 ## Current position
 
-The repository has completed **Phase 1, Phase 2, and Phase 3.1–3.2**. The deterministic simulation kernel includes fixed timing, ordered systems/events, replay, canonical state inspection, and documented single-threaded concurrency boundaries; CI run 36877007899 passed all six native target jobs, MSRV, dependency audit, docs, and renderer checks. The initial project, manifest, scene, and resource schema contracts are documented in `docs/project-format.md` and `docs/scene-format.md`, with TOML/JSON fixtures. The new `mycel-project` parser and validator are implemented and locally tested, pending the updated CI run before Phase 3.3 closes. Phase 1.5 accepted `wgpu` + `winit` as the Phase 4 candidate; Phase 4.1 will revalidate exact dependencies before product integration. No renderer, GPU driver, minimum OS installation, or packaged game is certified; all targets remain experimental until later minimum-OS and packaging gates pass.
+The repository has completed **Phase 1, Phase 2, and Phase 3.1–3.2**. The deterministic simulation kernel includes fixed timing, ordered systems/events, replay, canonical state inspection, and documented single-threaded concurrency boundaries; CI run 36877007899 passed all six native target jobs, MSRV, dependency audit, docs, and renderer checks. The initial project, manifest, scene, and resource schema contracts are documented in `docs/project-format.md` and `docs/scene-format.md`, with TOML/JSON fixtures. The new `hycel-project` parser and validator are implemented and locally tested, pending the updated CI run before Phase 3.3 closes. Phase 1.5 accepted `wgpu` + `winit` as the Phase 4 candidate; Phase 4.1 will revalidate exact dependencies before product integration. No renderer, GPU driver, minimum OS installation, or packaged game is certified; all targets remain experimental until later minimum-OS and packaging gates pass.

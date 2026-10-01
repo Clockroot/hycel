@@ -25,7 +25,7 @@ pub use world::{ComponentStorage, EntityId, World, WorldError};
 const NANOS_PER_SECOND: u128 = 1_000_000_000;
 const TIME_SCALE_ONE: u64 = 1_u64 << 32;
 
-/// Initial simulation rate used by interactive Mycel projects.
+/// Initial simulation rate used by interactive Hycel projects.
 pub const DEFAULT_TICKS_PER_SECOND: u32 = 60;
 /// Maximum simulation steps performed for one host-frame time sample.
 pub const DEFAULT_MAX_CATCH_UP_STEPS: u32 = 8;

@@ -1,6 +1,6 @@
 [package]
-name = "mycel-project"
-description = "Versioned project manifests and scene/resource validation for Mycel"
+name = "hycel-project"
+description = "Versioned project manifests and scene/resource validation for Hycel"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

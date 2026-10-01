@@ -69,6 +69,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
+name = "hycel-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "hycel-demo"
+version = "0.1.0"
+dependencies = [
+ "hycel-core",
+]
+
+[[package]]
+name = "hycel-project"
+version = "0.1.0"
+dependencies = [
+ "semver",
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
 name = "indexmap"
 version = "2.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -95,32 +121,6 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
-
-[[package]]
-name = "mycel-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "sha2",
-]
-
-[[package]]
-name = "mycel-demo"
-version = "0.1.0"
-dependencies = [
- "mycel-core",
-]
-
-[[package]]
-name = "mycel-project"
-version = "0.1.0"
-dependencies = [
- "semver",
- "serde",
- "serde_json",
- "toml",
-]
 
 [[package]]
 name = "proc-macro2"

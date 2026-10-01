@@ -1,6 +1,6 @@
 # Agent interface principles
 
-Mycel should work with basic code-completion agents and advanced tool-using agents. Do not assume an agent has hidden project memory, a GUI, or a particular vendor integration.
+Hycel should work with basic code-completion agents and advanced tool-using agents. Do not assume an agent has hidden project memory, a GUI, or a particular vendor integration.
 
 ## Three levels
 
@@ -10,7 +10,7 @@ A basic agent can read `README.md`, `AGENTS.md`, Rust source, and text project/s
 
 ### Level 2: CLI-native
 
-A tool-using agent can call `mycel --help`, `mycel check --json`, `mycel test --json`, `mycel inspect`, and `mycel replay`. JSON uses a versioned envelope and stable machine-readable diagnostic codes. Commands are composable and work headlessly in CI.
+A tool-using agent can call `hycel --help`, `hycel check --json`, `hycel test --json`, `hycel inspect`, and `hycel replay`. JSON uses a versioned envelope and stable machine-readable diagnostic codes. Commands are composable and work headlessly in CI.
 
 ### Level 3: engine-aware
 
@@ -36,10 +36,10 @@ A protocol adapter exposes typed, bounded operations such as list scenes, inspec
   "result": null,
   "diagnostics": [
     {
-      "code": "MYCEL_SCENE_MISSING_RESOURCE",
+      "code": "HYCEL_SCENE_MISSING_RESOURCE",
       "severity": "error",
       "message": "Scene references an asset that does not exist.",
-      "location": { "file": "scenes/main.mycel", "path": "entities[2].sprite" },
+      "location": { "file": "scenes/main.hycel", "path": "entities[2].sprite" },
       "hint": "Import the asset or update the reference."
     }
   ]

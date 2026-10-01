@@ -16,7 +16,7 @@ impl CanonicalWriter {
     #[must_use]
     pub fn new() -> Self {
         let mut hasher = Sha256::new();
-        hasher.update(b"mycel-authoritative-state-v1\0");
+        hasher.update(b"hycel-authoritative-state-v1\0");
         Self { hasher }
     }
 

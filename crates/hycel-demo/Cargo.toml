@@ -1,13 +1,13 @@
 [package]
-name = "mycel-demo"
-description = "Headless starter demo for the Mycel game engine"
+name = "hycel-demo"
+description = "Headless starter demo for the Hycel game engine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-mycel-core = { path = "../mycel-core", version = "0.1.0" }
+hycel-core = { path = "../hycel-core", version = "0.1.0" }
 
 [lints]
 workspace = true

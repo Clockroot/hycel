@@ -1,6 +1,6 @@
 # Contributing
 
-Mycel is early-stage. Please discuss significant architecture, file-format, or public API changes in an issue before opening a large implementation PR.
+Hycel is early-stage. Please discuss significant architecture, file-format, or public API changes in an issue before opening a large implementation PR.
 
 ## Development
 
@@ -10,10 +10,10 @@ Fresh setup from a machine with [rustup](https://rustup.rs/) installed:
 
 ```sh
 rustup toolchain install 1.87.0 --profile minimal --component clippy --component rustfmt
-git clone https://github.com/aaf2tbz/mycel.git
-cd mycel
+git clone https://github.com/aaf2tbz/hycel.git
+cd hycel
 cargo +1.87.0 test --workspace --all-targets --locked
-cargo +1.87.0 run -p mycel-demo --locked
+cargo +1.87.0 run -p hycel-demo --locked
 ```
 
 Install the dependency-audit tool before running `cargo deny check`:
@@ -27,10 +27,10 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --all-targets --locked
 cargo deny check
-cargo run -p mycel-demo --locked
+cargo run -p hycel-demo --locked
 ```
 
-Keep platform APIs outside `mycel-core`. Add tests for behavior and regression cases. Document new public APIs and user-visible formats. Avoid introducing dependencies for functionality that can be expressed clearly with the standard library; when a dependency is justified, record the review checklist from `docs/engineering-contracts.md` and keep `deny.toml`/`Cargo.lock` in sync.
+Keep platform APIs outside `hycel-core`. Add tests for behavior and regression cases. Document new public APIs and user-visible formats. Avoid introducing dependencies for functionality that can be expressed clearly with the standard library; when a dependency is justified, record the review checklist from `docs/engineering-contracts.md` and keep `deny.toml`/`Cargo.lock` in sync.
 
 ## Pull requests
 

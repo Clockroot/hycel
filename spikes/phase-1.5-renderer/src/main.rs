@@ -156,7 +156,7 @@ impl Probe {
         };
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
-            label: Some("mycel phase 1.5 feasibility clear"),
+            label: Some("hycel phase 1.5 feasibility clear"),
         });
         let color = if self.pressed_space {
             Color {
@@ -175,7 +175,7 @@ impl Probe {
         };
         {
             let _pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("mycel phase 1.5 feasibility clear pass"),
+                label: Some("hycel phase 1.5 feasibility clear pass"),
                 color_attachments: &[Some(RenderPassColorAttachment {
                     view: &view,
                     depth_slice: None,
@@ -204,7 +204,7 @@ impl ApplicationHandler for Probe {
             return;
         }
         let attributes: WindowAttributes = Window::default_attributes()
-            .with_title("Mycel Phase 1.5 Window / Input / Renderer Spike")
+            .with_title("Hycel Phase 1.5 Window / Input / Renderer Spike")
             .with_inner_size(PhysicalSize::new(640, 360));
         let window = match event_loop.create_window(attributes) {
             Ok(window) => Arc::new(window),

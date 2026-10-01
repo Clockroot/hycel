@@ -1,4 +1,6 @@
 /target/
 **/target/
+**/build/
+**/.hycel/
 .DS_Store
 *.log

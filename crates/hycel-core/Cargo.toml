@@ -1,6 +1,6 @@
 [package]
-name = "mycel-core"
-description = "Deterministic, platform-independent simulation primitives for Mycel"
+name = "hycel-core"
+description = "Deterministic, platform-independent simulation primitives for Hycel"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

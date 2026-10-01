@@ -1,20 +1,20 @@
-# Mycel project format (schema design)
+# Hycel project format (schema design)
 
-This document establishes the Phase 3 project layout and manifest contract. The concrete example is [`examples/empty-project/mycel.toml`](../examples/empty-project/mycel.toml). Parsing, validation, migrations, and diagnostics are implemented in later Phase 3 subphases; this document is the design source of truth meanwhile.
+This document establishes the Phase 3 project layout and manifest contract. The concrete example is [`examples/empty-project/hycel.toml`](../examples/empty-project/hycel.toml). Parsing, validation, migrations, and diagnostics are implemented in later Phase 3 subphases; this document is the design source of truth meanwhile.
 
 ## Layout
 
 ```text
 my-game/
-├── mycel.toml          # required project manifest
+├── hycel.toml          # required project manifest
 ├── src/                # Rust game code
 ├── assets/             # source textures, audio, fonts, and other imported content
 ├── scenes/             # versioned, strict JSON scene/resource documents
 ├── build/              # generated build outputs; safe to regenerate
-└── .mycel/             # generated caches and editor/engine state; safe to regenerate
+└── .hycel/             # generated caches and editor/engine state; safe to regenerate
 ```
 
-`mycel.toml` is the only project-root marker. Source, asset, and scene paths are project-relative, UTF-8, and must remain inside the project root after normalization and symlink resolution. Paths may not be absolute or contain a traversal outside the project. Their actual existence and file types are checked by project validation, not by the manifest parser. `build/` and `.mycel/` are generated directories and should be ignored by version control; project source and authored content are never generated or discarded by the engine.
+`hycel.toml` is the only project-root marker. Source, asset, and scene paths are project-relative, UTF-8, and must remain inside the project root after normalization and symlink resolution. Paths may not be absolute or contain a traversal outside the project. Their actual existence and file types are checked by project validation, not by the manifest parser. `build/` and `.hycel/` are generated directories and should be ignored by version control; project source and authored content are never generated or discarded by the engine.
 
 The first layout uses fixed directory names rather than user-configurable roots. This keeps tooling predictable and avoids allowing project files to redirect writes to arbitrary locations. A later ADR is required before making roots configurable.
 
@@ -49,13 +49,13 @@ debug_info = false
 - `project.id` is a stable UUID string, generated once and retained across renames and moves. `project.name` is a non-empty display name; it is not used to construct filesystem paths.
 - `engine.min_version` is an inclusive SemVer lower bound and `engine.max_version_exclusive` is an exclusive SemVer upper bound. Both are required, valid SemVer values, and the lower bound must be less than the upper bound. The engine version must satisfy `min_version <= engine < max_version_exclusive`.
 - `build.default_profile` names a profile present in `build.profiles`. Profile identifiers use lowercase ASCII letters, digits, and hyphens, beginning with a letter. `optimization` is an integer from 0 through 3; `debug_info` is a boolean. The built-in profile names `development` and `release` have no special parser semantics; the example merely provides conventional defaults.
-- Content roots are fixed by this schema: `src/`, `assets/`, and `scenes/`; generated output is fixed to `build/` and `.mycel/`. No manifest field can override these paths in schema 1.
+- Content roots are fixed by this schema: `src/`, `assets/`, and `scenes/`; generated output is fixed to `build/` and `.hycel/`. No manifest field can override these paths in schema 1.
 
-Unknown fields, duplicate keys, malformed values, and invalid paths must produce actionable diagnostics; they must not be ignored. Manifest parsing uses a 64 KiB input bound; scene/resource documents use an 8 MiB bound. `mycel-project` returns stable `MYCEL-*` diagnostic codes with file and field/JSON-path context. Project and scene schema versions are independent of the engine's SemVer compatibility range.
+Unknown fields, duplicate keys, malformed values, and invalid paths must produce actionable diagnostics; they must not be ignored. Manifest parsing uses a 64 KiB input bound; scene/resource documents use an 8 MiB bound. `hycel-project` returns stable `HYCEL-*` diagnostic codes with file and field/JSON-path context. Project and scene schema versions are independent of the engine's SemVer compatibility range.
 
 ## Parser dependency review
 
-The new direct dependencies are `toml` 0.9.12 (manifest decoding) and `semver` 1.0.28 (engine compatibility bounds). Both use MIT OR Apache-2.0, declare MSRVs below Mycel's Rust 1.87.0, and are pure Rust without OS/native-library requirements. The versioned lockfile is committed and `cargo deny check` passes. TOML 0.9.12 currently pulls both `winnow` 0.7.15 and 1.0.4; cargo-deny reports this as a duplicate-version warning for explicit future review, not a suppressed finding. `serde_json` was already a reviewed workspace dependency and remains the scene/resource parser.
+The new direct dependencies are `toml` 0.9.12 (manifest decoding) and `semver` 1.0.28 (engine compatibility bounds). Both use MIT OR Apache-2.0, declare MSRVs below Hycel's Rust 1.87.0, and are pure Rust without OS/native-library requirements. The versioned lockfile is committed and `cargo deny check` passes. TOML 0.9.12 currently pulls both `winnow` 0.7.15 and 1.0.4; cargo-deny reports this as a duplicate-version warning for explicit future review, not a suppressed finding. `serde_json` was already a reviewed workspace dependency and remains the scene/resource parser.
 
 ## Compatibility and evolution
 
@@ -63,4 +63,4 @@ The TOML manifest and JSON scene/resource choice was selected to balance editabl
 
 ## Generated and ignored content
 
-Only `build/` and `.mycel/` are engine-generated in schema 1. They may be removed and recreated by engine commands. Authored files under `src/`, `assets/`, and `scenes/` must not be overwritten by generated output. Root `.gitignore` entries should ignore the two generated directories without ignoring the rest of the project.
+Only `build/` and `.hycel/` are engine-generated in schema 1. They may be removed and recreated by engine commands. Authored files under `src/`, `assets/`, and `scenes/` must not be overwritten by generated output. Root `.gitignore` entries should ignore the two generated directories without ignoring the rest of the project.

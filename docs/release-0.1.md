@@ -8,7 +8,7 @@ A developer can create, run, inspect, and test a small 2D game on supported desk
 
 ## Required vertical slice
 
-Ship one polished small single-player side-view platformer created with Mycel itself, aligned with the 1.0 product contract in [`product-scope.md`](product-scope.md). A clean clone must build and launch it without hand-edited machine state.
+Ship one polished small single-player side-view platformer created with Hycel itself, aligned with the 1.0 product contract in [`product-scope.md`](product-scope.md). A clean clone must build and launch it without hand-edited machine state.
 
 ### Engine capabilities
 
@@ -19,14 +19,14 @@ Ship one polished small single-player side-view platformer created with Mycel it
 - Fixed-step simulation, seeded RNG, recorded/replayed input, headless run.
 - Asset import with clear errors, content identity, dependency reporting, and no silent overwrite.
 - Rust game code and a documented lifecycle; hot reload is optional and only if reliable.
-- CLI: `mycel new`, `check`, `run`, `test`, `replay`, `inspect`, `screenshot`, `--version`, `--json`.
+- CLI: `hycel new`, `check`, `run`, `test`, `replay`, `inspect`, `screenshot`, `--version`, `--json`.
 - Structured diagnostics: stable code, severity, message, path/span or entity/tick context, remediation hint.
 - User-facing sample and quickstart; no requirement that users install the source toolchain to run exported game.
 
 ### Agent usability
 
-- Machine-readable `mycel --help --json` and schema-versioned command output.
-- `mycel check` is read-only; agent actions are explicit, scoped, and never silently destructive.
+- Machine-readable `hycel --help --json` and schema-versioned command output.
+- `hycel check` is read-only; agent actions are explicit, scoped, and never silently destructive.
 - Agent can list project resources, inspect scenes/entities/components, apply validated edits, run tests/replays, and retrieve logs/screenshots through stable commands/services.
 - MCP is an adapter, not a requirement: the core agent API remains callable by CLI/tests and does not depend on a particular model/vendor.
 - Documented `AGENTS.md`/agent guide with project structure, command recipes, permissions, output schemas, and task examples.

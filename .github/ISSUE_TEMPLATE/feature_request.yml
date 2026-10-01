@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest a workflow improvement within the Mycel product scope.
+description: Suggest a workflow improvement within the Hycel product scope.
 labels: ["kind: feature", "status: needs-triage"]
 body:
   - type: markdown

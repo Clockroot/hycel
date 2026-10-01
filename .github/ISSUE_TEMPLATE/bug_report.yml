@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in Mycel.
+description: Report a reproducible problem in Hycel.
 labels: ["kind: bug", "status: needs-reproduction"]
 body:
   - type: markdown
@@ -9,7 +9,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Mycel version or commit
+      label: Hycel version or commit
       placeholder: 0.1.0 or commit SHA
     validations:
       required: true

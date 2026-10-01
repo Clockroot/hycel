@@ -683,7 +683,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mycel-render-spike"
+name = "hycel-render-spike"
 version = "0.1.0"
 dependencies = [
  "pollster",

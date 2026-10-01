@@ -1,11 +1,11 @@
-# Mycel engineering contracts
+# Hycel engineering contracts
 
 These rules apply to the engine, editor, tools, samples, and CI. They are the default engineering policy for the 1.0 line; exceptions require an ADR, a concrete user need, tests, and documented operational/compatibility impact.
 
 ## Architecture boundaries
 
 - Dependency direction and planned crate responsibilities are defined in [`architecture.md`](architecture.md). Keep simulation, renderer, platform, project/asset services, editor, and agent adapters separate by dependency direction.
-- `mycel-core` must not depend on a windowing/graphics API, operating-system API, filesystem, network, wall clock, or editor/agent protocol.
+- `hycel-core` must not depend on a windowing/graphics API, operating-system API, filesystem, network, wall clock, or editor/agent protocol.
 - Editor and agent integrations call shared application services; neither owns validation or persistence rules.
 - Keep backend/framework types out of stable game and serialized-project APIs.
 - Add a crate boundary only when it enforces a real dependency or test boundary; avoid premature fragmentation.
@@ -34,7 +34,7 @@ These rules apply to the engine, editor, tools, samples, and CI. They are the de
 
 ## Dependencies and supply chain
 
-- Prefer Rust standard-library capabilities when they are clear and sufficient; otherwise choose a maintained dependency with a license and target matrix compatible with Mycel.
+- Prefer Rust standard-library capabilities when they are clear and sufficient; otherwise choose a maintained dependency with a license and target matrix compatible with Hycel.
 - Every direct dependency addition/update needs a review note: purpose and boundary, alternatives considered, maintainer/activity, license/SPDX expression, MSRV, transitive footprint, native/system requirements, OS/architecture coverage, and security/advisory status.
 - Crates.io is the only default source. Git/path overrides require an ADR, a pinned revision, ownership and update plan, and an explicit source allowlist entry.
 - Cargo-deny checks the locked graph for advisories, disallowed licenses, source changes, wildcard requirements, and duplicate-version growth. Fix findings or record a narrowly scoped reasoned exception; never blanket-ignore an advisory or license finding.
@@ -42,7 +42,7 @@ These rules apply to the engine, editor, tools, samples, and CI. They are the de
 
 ## Privacy, networking, and telemetry
 
-- Mycel core/editor/project operations are local-first. No account, cloud, network connection, telemetry, crash upload, analytics, or model provider is required for normal use.
+- Hycel core/editor/project operations are local-first. No account, cloud, network connection, telemetry, crash upload, analytics, or model provider is required for normal use.
 - No telemetry or crash reporting is sent by default. Do not add tracking identifiers or collect usage data. Any future diagnostic upload must be a separate explicit opt-in, preview exactly what is sent, redact secrets, and be independently disableable.
 - Engine code may access the network only for a direct user-requested operation (for example, an explicit package/download action) with a visible purpose. Project data is never uploaded implicitly.
 - AI agent adapters do not grant arbitrary network, shell, or filesystem access. Follow the least-privilege and project-root boundaries in [`agent-interface.md`](agent-interface.md).

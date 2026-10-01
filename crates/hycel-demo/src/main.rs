@@ -1,9 +1,9 @@
-use mycel_core::{
+use hycel_core::{
     CanonicalState, CanonicalWriter, DEFAULT_TICKS_PER_SECOND, FixedClock,
     InputFrame as TickInputFrame, Replay, Schedule, ScheduleError, SystemId,
 };
 
-// Small, headless proof that Mycel's chosen 1.0 target—a deterministic 2D
+// Small, headless proof that Hycel's chosen 1.0 target—a deterministic 2D
 // platformer—is feasible with the current Rust kernel. This is demo-only
 // prototype behavior, not a stable physics/gameplay API.
 const RUN_PER_TICK_MILLI_UNITS: i64 = 80;
@@ -158,7 +158,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!(
-        "Mycel platformer prototype: ticks={}, x={} milli-units, highest_jump={} milli-units, grounded={}, state_hash={}",
+        "Hycel platformer prototype: ticks={}, x={} milli-units, highest_jump={} milli-units, grounded={}, state_hash={}",
         replay.frames().len(),
         game.player.x_milli_units,
         highest_jump_milli_units,
@@ -173,7 +173,7 @@ mod tests {
     use super::{
         DEFAULT_TICKS_PER_SECOND, InputFrame, PlatformerPrototype, platformer_schedule, record_demo,
     };
-    use mycel_core::{CanonicalState, Replay};
+    use hycel_core::{CanonicalState, Replay};
 
     #[test]
     fn player_moves_horizontally_by_fixed_tick_amount() {

@@ -182,7 +182,7 @@ jobs:
           } | tee target/development-baseline.txt
           /usr/bin/time -f 'msrv_release_build_seconds=%e' -o target/timing.txt cargo +1.87.0 build --release --workspace --locked
           /usr/bin/time -f 'msrv_test_seconds=%e' -a -o target/timing.txt cargo +1.87.0 test --workspace --all-targets --locked
-          /usr/bin/time -f 'msrv_demo_run_seconds=%e' -a -o target/timing.txt cargo +1.87.0 run -p mycel-demo --locked
+          /usr/bin/time -f 'msrv_demo_run_seconds=%e' -a -o target/timing.txt cargo +1.87.0 run -p hycel-demo --locked
           /usr/bin/time -f 'stable_release_build_seconds=%e' -a -o target/timing.txt cargo build --release --workspace --locked
           /usr/bin/time -f 'stable_test_seconds=%e' -a -o target/timing.txt cargo test --workspace --all-targets --locked
           cat target/timing.txt | tee -a target/development-baseline.txt

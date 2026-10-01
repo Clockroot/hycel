@@ -13,7 +13,7 @@
 
 ## Dependency review
 
-Direct dependencies added to `mycel-core` and locked in `Cargo.lock`:
+Direct dependencies added to `hycel-core` and locked in `Cargo.lock`:
 
 | Crate | Locked version | Purpose/boundary | License | MSRV / native footprint |
 |---|---:|---|---|---|

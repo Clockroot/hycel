@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/mycel-core",
-    "crates/mycel-project",
-    "crates/mycel-demo",
+    "crates/hycel-core",
+    "crates/hycel-project",
+    "crates/hycel-demo",
 ]
 
 [workspace.package]

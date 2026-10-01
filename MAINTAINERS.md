@@ -10,7 +10,7 @@
 
 Maintainers label new issues for area (`area:engine`, `area:renderer`, `area:platform`, `area:agent`, `area:docs`, `area:ci`), kind (`bug`, `feature`, `question`, `security`), and status (`needs-reproduction`, `confirmed`, `blocked`, `accepted`, `deferred`, `duplicate`) as appropriate. Use milestones for roadmap commitments; do not promise a response or release date without capacity.
 
-Before accepting a bug, request the Mycel version, target OS/architecture, reproducible steps or minimal project, expected/actual result, and relevant logs with secrets removed. Do not ask users to post proprietary assets or personal data publicly.
+Before accepting a bug, request the Hycel version, target OS/architecture, reproducible steps or minimal project, expected/actual result, and relevant logs with secrets removed. Do not ask users to post proprietary assets or personal data publicly.
 
 Feature requests should explain the user problem, workflow, alternatives, and whether it fits [`docs/product-scope.md`](docs/product-scope.md). Close or defer requests outside 1.0 scope with a rationale rather than allowing the roadmap to grow by default.
 
