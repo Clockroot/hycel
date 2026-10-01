@@ -20,6 +20,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - `mycel-demo`: headless one-second/60-tick smoke demo.
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Design and release requirements: [`docs/`](docs/).
+- Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Phased path to stable 1.0: [`docs/roadmap.md`](docs/roadmap.md).
 
 Run the current kernel:

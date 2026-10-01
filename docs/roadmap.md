@@ -29,7 +29,7 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ### Subphases
 
-1. **1.1 — Confirm product scope.** Lock the initial product to a Rust-first, 2D, desktop engine. Define the game genres and minimum game scale that 1.0 promises to support; keep general-purpose 3D and networking out of scope.
+1. **1.1 — Confirm product scope — COMPLETE.** Mycel is Rust-first, 2D, and desktop-focused. 1.0 explicitly promises small single-player side-view platformers at the scale defined in [`product-scope.md`](product-scope.md); general-purpose 3D and networking are out of scope.
 2. **1.2 — Make the support matrix executable.** Define exact OS/architecture pairs, minimum OS versions, compiler/toolchain policy, and supported graphics backends. Make CI test each declared native pair; label untested pairs experimental rather than supported.
 3. **1.3 — Establish engineering contracts.** Keep simulation/platform/rendering/editor/protocol boundaries documented; forbid unsafe code by default; define dependency review, error handling, data-loss, privacy, and telemetry policies.
 4. **1.4 — Set repository hygiene.** Add issue templates, pull-request template, code of conduct, release notes format, ownership/triage rules, and dependency/license inventory automation before inviting outside contributions.
@@ -194,4 +194,4 @@ These requirements apply throughout all phases, not just before 1.0:
 
 ## Current position
 
-The repository is at the start of **Phase 1**, with initial Rust workspace/CI scaffolding and a fixed-step clock already present. Most Phase 1 gates (support matrix validation, renderer spike, policy/governance, and clean-machine measurements) remain open. Do not treat the current CI configuration as proof that every architecture/backend is already supported; it must run successfully in the actual GitHub repository and later include runtime smoke tests.
+The repository has completed **Phase 1.1**: product language, platform class, genre promise, minimum game scale, and exclusions are recorded in `product-scope.md`. **Phase 1.2** is next. The remaining Phase 1 gates (support matrix validation, renderer spike, policy/governance, and clean-machine measurements) remain open. Do not treat the current CI configuration as proof that every architecture/backend is already supported; it must run successfully in the actual GitHub repository and later include runtime smoke tests.

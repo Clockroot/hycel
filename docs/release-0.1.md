@@ -8,7 +8,7 @@ A developer can create, run, inspect, and test a small 2D game on supported desk
 
 ## Required vertical slice
 
-Ship one polished sample game (small platformer or top-down adventure) created with Mycel itself. A clean clone must build and launch it without hand-edited machine state.
+Ship one polished small single-player side-view platformer created with Mycel itself, aligned with the 1.0 product contract in [`product-scope.md`](product-scope.md). A clean clone must build and launch it without hand-edited machine state.
 
 ### Engine capabilities
 
