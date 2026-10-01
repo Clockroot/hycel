@@ -352,4 +352,13 @@ mod tests {
         assert_eq!(clock.advance_ns(u64::MAX), Err(ClockError::TooManySteps));
         assert_eq!(clock, before);
     }
+
+    #[test]
+    fn tick_overflow_does_not_mutate_clock() {
+        let mut clock = FixedClock::new(60).unwrap();
+        clock.tick = u64::MAX;
+        let before = clock.clone();
+        assert_eq!(clock.advance_ns(16_666_667), Err(ClockError::TickOverflow));
+        assert_eq!(clock, before);
+    }
 }

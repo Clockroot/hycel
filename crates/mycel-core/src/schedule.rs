@@ -766,6 +766,27 @@ mod tests {
     }
 
     #[test]
+    fn tick_overflow_is_rejected_without_mutating_state_or_events() {
+        let mut schedule = Schedule::<u32, u32>::new(42, 9);
+        schedule
+            .add_system(0, SystemId::new(1), |state, context| {
+                *state += 1;
+                context.emit(99)?;
+                Ok(())
+            })
+            .unwrap();
+        schedule.next_tick = u64::MAX;
+        let mut state = 5;
+        assert_eq!(
+            schedule.run_tick(&mut state, &InputFrame::new(u64::MAX)),
+            Err(ScheduleError::TickOverflow)
+        );
+        assert_eq!(state, 5);
+        assert_eq!(schedule.next_tick(), u64::MAX);
+        assert_eq!(schedule.pending_event_count(), 0);
+    }
+
+    #[test]
     fn failed_tick_restores_state_rng_and_events() {
         let mut schedule = Schedule::<u32, u32>::new(42, 9);
         schedule
