@@ -57,7 +57,7 @@ Game logic may initially use Rust modules compiled into the game. Do not make dy
 
 ## Renderer/platform decision gate
 
-The planned 1.0 OS floors, Rust triples, and graphics backend mapping are recorded in [`support-matrix.md`](support-matrix.md). They remain planned—not supported—until native CI and actual runtime/package tests pass. Before committing to a graphics abstraction, build a small spike that opens a window, clears/presents frames, draws a textured sprite, handles resize/input, and runs on each declared OS/architecture. Candidate: Rust + `wgpu`, using Metal on macOS, Direct3D 12 on Windows, and Vulkan on Linux. Record backend coverage, shader workflow, packaging, minimum-OS behavior, and failure modes. Keep the renderer boundary replaceable; do not expose backend types in game APIs.
+The planned 1.0 OS floors, Rust triples, and graphics backend mapping are recorded in [`support-matrix.md`](support-matrix.md). They remain planned—not supported—until native CI and actual runtime/package tests pass. Before committing to a graphics abstraction, build a small feasibility spike that opens a window, clears/presents frames, handles resize/key input, and runs on representative OS/architecture pairs; compile it on all declared targets. The Phase 1.5 candidate is Rust `wgpu` + `winit`, using Metal on macOS, Direct3D 12 on Windows, and Vulkan on Linux; the isolated probe pins versions and is not yet an engine dependency. Phase 4.3 must extend the selected backend with a textured sprite before the renderer is considered functional. Record backend coverage, shader workflow, packaging, minimum-OS behavior, and failure modes in an ADR. Keep the renderer boundary replaceable; do not expose backend types in game APIs.
 
 ## Failure model
 

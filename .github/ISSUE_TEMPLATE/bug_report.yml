@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible problem in Mycel.
+labels: ["kind: bug", "status: needs-reproduction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues first. Never attach credentials, private project content, or exploitable security details.
+  - type: input
+    id: version
+    attributes:
+      label: Mycel version or commit
+      placeholder: 0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other / unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: CPU architecture
+      options:
+        - x86-64
+        - ARM64
+        - Other / unknown
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include the smallest safe example or project necessary to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or diagnostics
+      description: Redact usernames, file paths, tokens, and private project data before posting.
+    validations:
+      required: false

@@ -7,7 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
-mycel-core = { path = "../mycel-core" }
+mycel-core = { path = "../mycel-core", version = "0.1.0" }
 
 [lints]
 workspace = true

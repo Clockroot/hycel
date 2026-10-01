@@ -1,0 +1,26 @@
+changelog:
+  exclude:
+    labels:
+      - "skip-changelog"
+    authors:
+      - "github-actions[bot]"
+  categories:
+    - title: "Breaking changes"
+      labels:
+        - "breaking-change"
+    - title: "Engine and gameplay"
+      labels:
+        - "area:engine"
+        - "area:renderer"
+        - "area:platform"
+    - title: "Agent and developer workflow"
+      labels:
+        - "area:agent"
+        - "area:cli"
+    - title: "Documentation and community"
+      labels:
+        - "area:docs"
+        - "area:community"
+    - title: "Other changes"
+      labels:
+        - "*"

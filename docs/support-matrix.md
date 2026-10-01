@@ -17,7 +17,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 ## Graphics backend policy
 
-- Candidate graphics abstraction: Rust `wgpu`; the Phase 1.5 spike must verify this before it is committed as an implementation dependency.
+- Candidate graphics abstraction: Rust `wgpu` + `winit`. Phase 1.5 currently evaluates `wgpu 30.0.1` (Rust 1.87.0 MSRV) and `winit 0.30.13` in an isolated, non-product spike; native multi-platform runtime validation and a decision ADR are still pending. These are not yet engine dependencies.
 - Intended native mapping: Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1 or newer on Linux.
 - OpenGL/software-renderer fallback is **not** part of the 1.0 promise unless the renderer spike demonstrates a maintainable fallback and it receives its own smoke-test coverage.
 - The current headless kernel has no renderer. Consequently, no graphics backend is currently supported; backend names above are planned targets only.
@@ -26,7 +26,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 ## Compiler and build policy
 
 - Engine/workspace edition: Rust 2024.
-- Minimum Supported Rust Version (MSRV): Rust 1.85.1. CI tests this exact minimum using `Cargo.lock` and current stable separately.
+- Minimum Supported Rust Version (MSRV): Rust 1.87.0. CI tests this exact minimum using `Cargo.lock` and current stable separately.
 - Contributions use stable Rust; update the MSRV only with an explicit compatibility review, a Cargo manifest/CI change, and release notes.
 - Target triples in the table are the native build triples for engine tools. End-user exported games do not require users to install Rust.
 - Lock dependency versions for repeatable CI and releases. A target is not certified by cross-compilation alone; run tests and eventual runtime/package smoke checks natively.
@@ -40,5 +40,5 @@ Phase 4/8 must add real runtime and packaging checks. Minimum-OS versions that a
 ## Source references
 
 - [GitHub-hosted runner labels and architectures](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
-- [Rust 1.85 and Rust 2024 edition stabilization](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
+- [Rust 1.87 release](https://blog.rust-lang.org/2025/05/15/Rust-1.87.0.html)
 - [`wgpu` supported platforms and backend selection](https://docs.rs/wgpu/latest/wgpu/struct.Backends.html)

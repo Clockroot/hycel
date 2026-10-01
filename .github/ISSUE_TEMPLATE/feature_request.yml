@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a workflow improvement within the Mycel product scope.
+labels: ["kind: feature", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check `docs/product-scope.md` and the roadmap first. Features outside the explicit 1.0 promise may be deferred.
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What are you trying to do, and what is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Proposed workflow
+      description: Describe what a successful human or AI-agent workflow would look like.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and tradeoffs
+      description: What workarounds or other designs have you considered?
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Product scope
+      options:
+        - label: This appears to fit the 1.0 Rust-first, 2D desktop platformer scope.
+          required: false

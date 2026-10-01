@@ -70,9 +70,126 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.85.1
-      - name: Test with declared MSRV
+      - uses: dtolnay/rust-toolchain@1.87.0
+      - name: Test with declared MSRV 1.87.0
         run: cargo test --workspace --all-targets --locked
+
+  renderer-spike:
+    name: Renderer/window/input feasibility (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86-64 (Ubuntu 24.04)
+            runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            smoke: true
+          - name: Linux ARM64 (Ubuntu 24.04)
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            smoke: false
+          - name: macOS x86-64 (macOS 15 Intel)
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            smoke: false
+          - name: macOS ARM64 (macOS 15)
+            runner: macos-15
+            target: aarch64-apple-darwin
+            smoke: true
+          - name: Windows x86-64 (Windows Server 2025 runner)
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+            smoke: true
+          - name: Windows ARM64 (Windows 11)
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            smoke: false
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Set macOS 14 deployment floor
+        if: contains(matrix.target, 'apple-darwin')
+        run: echo "MACOSX_DEPLOYMENT_TARGET=14.0" >> "$GITHUB_ENV"
+      - name: Check formatting
+        run: cargo fmt --manifest-path spikes/phase-1.5-renderer/Cargo.toml -- --check
+      - name: Clippy renderer spike
+        run: cargo clippy --manifest-path spikes/phase-1.5-renderer/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Test renderer spike
+        run: cargo test --manifest-path spikes/phase-1.5-renderer/Cargo.toml --all-targets --locked
+      - name: Build renderer spike for native target
+        run: cargo build --manifest-path spikes/phase-1.5-renderer/Cargo.toml --release --target ${{ matrix.target }} --locked
+      - name: Install software Vulkan and Xvfb
+        if: runner.os == 'Linux' && matrix.smoke
+        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers libxkbcommon0 xvfb
+      - name: Run native window/input/presentation smoke
+        if: matrix.smoke
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run -a cargo run --manifest-path spikes/phase-1.5-renderer/Cargo.toml --release --locked -- --smoke
+          else
+            cargo run --manifest-path spikes/phase-1.5-renderer/Cargo.toml --release --locked -- --smoke
+          fi
+
+  dependency-audit:
+    name: Dependency, license, and source audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install pinned cargo-deny
+        run: cargo install cargo-deny --version 0.20.2 --locked
+      - name: Audit workspace and renderer spike
+        run: |
+          cargo deny check
+          cargo deny --manifest-path spikes/phase-1.5-renderer/Cargo.toml check
+      - name: Generate machine-readable dependency/license inventory
+        run: |
+          mkdir -p target
+          cargo metadata --format-version 1 --all-features --locked > target/cargo-metadata.json
+          cargo deny list --format json > target/license-inventory.json
+          cargo metadata --manifest-path spikes/phase-1.5-renderer/Cargo.toml --format-version 1 --locked > target/renderer-spike-metadata.json
+          cargo deny --manifest-path spikes/phase-1.5-renderer/Cargo.toml list --format json > target/renderer-spike-license-inventory.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: dependency-inventory-${{ github.sha }}
+          path: target/*.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  clean-setup-baseline:
+    name: Fresh-runner development setup baseline
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install and verify exact MSRV
+        run: rustup toolchain install 1.87.0 --profile minimal
+      - name: Record runner and cold build/test timings
+        run: |
+          mkdir -p target
+          {
+            echo "runner=ubuntu-24.04"
+            echo "architecture=$(uname -m)"
+            echo "stable=$(rustc --version)"
+            echo "msrv=$(rustc +1.87.0 --version)"
+          } | tee target/development-baseline.txt
+          /usr/bin/time -f 'msrv_release_build_seconds=%e' -o target/timing.txt cargo +1.87.0 build --release --workspace --locked
+          /usr/bin/time -f 'msrv_test_seconds=%e' -a -o target/timing.txt cargo +1.87.0 test --workspace --all-targets --locked
+          /usr/bin/time -f 'stable_release_build_seconds=%e' -a -o target/timing.txt cargo build --release --workspace --locked
+          /usr/bin/time -f 'stable_test_seconds=%e' -a -o target/timing.txt cargo test --workspace --all-targets --locked
+          cat target/timing.txt | tee -a target/development-baseline.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: clean-development-baseline-${{ github.sha }}
+          path: target/development-baseline.txt
+          retention-days: 90
 
   docs:
     name: Documentation and repository hygiene

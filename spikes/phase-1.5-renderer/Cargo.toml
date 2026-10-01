@@ -1,0 +1,16 @@
+[package]
+name = "mycel-render-spike"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87.0"
+publish = false
+license = "Apache-2.0"
+
+# Keep the feasibility probe independent from the product workspace until an
+# architecture decision adopts or removes its candidate dependencies.
+[workspace]
+
+[dependencies]
+pollster = "=0.4.0"
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "parking_lot", "dx12", "metal", "vulkan", "wgsl"] }
+winit = { version = "=0.30.13", default-features = false, features = ["rwh_06", "x11", "wayland", "wayland-dlopen"] }

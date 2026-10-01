@@ -22,6 +22,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - Design and release requirements: [`docs/`](docs/).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).
+- Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
 - Phased path to stable 1.0: [`docs/roadmap.md`](docs/roadmap.md).
 
 Run the current kernel:
@@ -39,4 +40,4 @@ This is pre-alpha and does not yet promise a stable project format, gameplay API
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [architecture](docs/architecture.md), and [release 0.1](docs/release-0.1.md). No engine API is considered stable until a later release explicitly says so.
+See [CONTRIBUTING.md](CONTRIBUTING.md), [`MAINTAINERS.md`](MAINTAINERS.md), the [Code of Conduct](CODE_OF_CONDUCT.md), [architecture](docs/architecture.md), [engineering contracts](docs/engineering-contracts.md), and [release 0.1](docs/release-0.1.md). No engine API is considered stable until a later release explicitly says so.

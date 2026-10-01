@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/aaf2tbz/mycel/blob/main/SECURITY.md
+    about: Follow the private-disclosure instructions; do not post exploitable details publicly.
+  - name: Read the Mycel roadmap and product scope
+    url: https://github.com/aaf2tbz/mycel/blob/main/docs/roadmap.md
+    about: Check current 1.0 scope before proposing a feature.
