@@ -31,7 +31,7 @@ Workspace crate boundaries (split only when boundaries are real; avoid premature
 - `hycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
 - `hycel-render`: 2D renderer behind a backend boundary; initial candidate `wgpu`, pending a renderer spike and explicit backend decision.
 - `hycel-platform`: window, files, clock, input, and OS integration adapters.
-- `hycel-cli`: stable human CLI plus versioned JSON output for validation, build, test, run, inspect, and screenshot.
+- `hycel-cli`: stable human CLI plus versioned JSON output; Phase 3.6 foundations implement `new`, `check`, and `inspect`, while build/test/run/replay/screenshot commands remain later work.
 - `hycel-agent`: optional protocol adapters (MCP and/or JSON-RPC stdio) that call the same typed application services as the CLI. Protocol glue must not contain engine logic.
 - `hycel-editor`: defer until project format and runtime loop work headlessly. Editor operations must round-trip project files without hidden data loss.
 

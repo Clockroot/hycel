@@ -19,6 +19,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-core`: fixed-rate integer simulation clock and deterministic world/schedule/replay primitives; no platform APIs.
 - `hycel-project`: bounded TOML/JSON manifest and scene/resource parsing with strict fields, path checks, and stable diagnostics; project formats are still experimental.
 - `hycel-assets`: bounded source hashing, versioned import fingerprints/records, deterministic cache/reimport decisions, and direct scene/resource dependency reports; format decoders and importer execution are not implemented.
+- `hycel-cli`: `hycel new`, `check`, and read-only `inspect` foundations with versioned JSON envelopes and stable exit codes.
 - `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Project and scene schema proposals: [`docs/project-format.md`](docs/project-format.md) and [`docs/scene-format.md`](docs/scene-format.md), with parser implementation in `hycel-project`; asset identity and import contracts are in [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
@@ -28,12 +29,17 @@ Game projects should be inspectable and testable without clicking through an edi
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
 - Phased path to stable 1.0: [`docs/roadmap.md`](docs/roadmap.md).
 
-Run the current kernel:
+Run the current kernel and project CLI:
 
 ```sh
 cargo run -p hycel-demo
+cargo run -p hycel-cli -- --help
+cargo run -p hycel-cli -- new ./MyGame --name "My Game"
+cargo run -p hycel-cli -- check ./MyGame --json
 cargo test --workspace
 ```
+
+CLI command and JSON contracts are documented in [`docs/cli.md`](docs/cli.md).
 
 Run it with `cargo run -p hycel-demo`; it reports a repeatable 90-tick platformer movement/jump/landing scenario.
 

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/hycel-assets",
+    "crates/hycel-cli",
     "crates/hycel-core",
     "crates/hycel-project",
     "crates/hycel-demo",
@@ -15,6 +16,7 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 atomic-write-file = "0.3.1"
+getrandom = "0.4.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.10.9"

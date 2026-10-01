@@ -11,7 +11,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use semver::Version;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod migration;
@@ -70,7 +70,7 @@ impl fmt::Display for Diagnostic {
 impl std::error::Error for Diagnostic {}
 
 /// Version-1 project manifest.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProjectManifest {
     format_version: u32,
@@ -79,28 +79,28 @@ pub struct ProjectManifest {
     build: BuildSettings,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ProjectIdentity {
     id: String,
     name: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EngineCompatibility {
     min_version: String,
     max_version_exclusive: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BuildSettings {
     default_profile: String,
     profiles: BTreeMap<String, BuildProfile>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BuildProfile {
     optimization: u8,
@@ -108,6 +108,62 @@ struct BuildProfile {
 }
 
 impl ProjectManifest {
+    /// Creates a schema-1 manifest with the conventional development/release
+    /// profiles and engine compatibility range `>=0.1.0, <0.2.0`.
+    ///
+    /// # Errors
+    ///
+    /// Returns a diagnostic if the supplied UUID or display name is invalid.
+    pub fn new(
+        project_id: impl Into<String>,
+        project_name: impl Into<String>,
+    ) -> Result<Self, Diagnostic> {
+        let profiles = [
+            (
+                "development".to_owned(),
+                BuildProfile {
+                    optimization: 0,
+                    debug_info: true,
+                },
+            ),
+            (
+                "release".to_owned(),
+                BuildProfile {
+                    optimization: 3,
+                    debug_info: false,
+                },
+            ),
+        ]
+        .into_iter()
+        .collect();
+        let manifest = Self {
+            format_version: 1,
+            project: ProjectIdentity {
+                id: project_id.into(),
+                name: project_name.into(),
+            },
+            engine: EngineCompatibility {
+                min_version: "0.1.0".to_owned(),
+                max_version_exclusive: "0.2.0".to_owned(),
+            },
+            build: BuildSettings {
+                default_profile: "development".to_owned(),
+                profiles,
+            },
+        };
+        manifest.validate()?;
+        Ok(manifest)
+    }
+
+    /// Serializes the manifest to UTF-8 TOML.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the manifest cannot be encoded as TOML.
+    pub fn to_toml(&self) -> Result<String, toml::ser::Error> {
+        toml::to_string(self)
+    }
+
     /// Parses and validates a UTF-8 TOML project manifest.
     ///
     /// # Errors
@@ -1434,6 +1490,18 @@ mod tests {
 
     const MANIFEST: &str = include_str!("../../../examples/empty-project/hycel.toml");
     const SCENE: &[u8] = include_bytes!("../../../examples/empty-project/scenes/first-room.json");
+
+    #[test]
+    fn new_manifest_toml_round_trips_and_has_default_profiles() {
+        let manifest =
+            ProjectManifest::new("50000000-0000-4000-8000-000000000001", "Created Project")
+                .unwrap();
+        let encoded = manifest.to_toml().unwrap();
+        let reparsed = ProjectManifest::parse_toml(&encoded).unwrap();
+        assert_eq!(reparsed, manifest);
+        assert_eq!(reparsed.default_profile(), "development");
+        assert_eq!(reparsed.build_profiles().count(), 2);
+    }
 
     #[test]
     fn example_manifest_and_scene_parse() {

@@ -133,6 +133,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hycel-cli"
+version = "0.1.0"
+dependencies = [
+ "getrandom",
+ "hycel-assets",
+ "hycel-project",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "hycel-core"
 version = "0.1.0"
 dependencies = [

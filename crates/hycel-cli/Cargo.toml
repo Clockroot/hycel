@@ -1,0 +1,25 @@
+[package]
+name = "hycel-cli"
+description = "Stable command-line foundations for Hycel projects"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "hycel_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hycel"
+path = "src/main.rs"
+
+[dependencies]
+getrandom.workspace = true
+hycel-assets = { path = "../hycel-assets", version = "0.1.0" }
+hycel-project = { path = "../hycel-project", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

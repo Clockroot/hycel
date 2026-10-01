@@ -10,7 +10,7 @@ A basic agent can read `README.md`, `AGENTS.md`, Rust source, and text project/s
 
 ### Level 2: CLI-native
 
-A tool-using agent can call `hycel --help`, `hycel check --json`, `hycel test --json`, `hycel inspect`, and `hycel replay`. JSON uses a versioned envelope and stable machine-readable diagnostic codes. Commands are composable and work headlessly in CI.
+A tool-using agent can currently call `hycel new`, `hycel check --json`, and `hycel inspect --json`. JSON uses a versioned envelope and stable machine-readable diagnostic codes. Build/run/test/replay commands remain roadmap work.
 
 ### Level 3: engine-aware
 
@@ -27,23 +27,23 @@ A protocol adapter exposes typed, bounded operations such as list scenes, inspec
 - Errors are data: stable code, concise message, context, remediation, and optional debug detail.
 - Protocol adapters are replaceable and versioned. Business logic lives in the engine/application services.
 
-## Planned JSON result envelope
+## Current CLI JSON result envelope
 
 ```json
 {
   "schema_version": 1,
+  "command": "check",
   "ok": false,
   "result": null,
   "diagnostics": [
     {
-      "code": "HYCEL_SCENE_MISSING_RESOURCE",
-      "severity": "error",
-      "message": "Scene references an asset that does not exist.",
-      "location": { "file": "scenes/main.hycel", "path": "entities[2].sprite" },
-      "hint": "Import the asset or update the reference."
+      "code": "HYCEL-PROJECT-002",
+      "file": "scenes/main.json",
+      "path": "$.entities[2].components[0].data.sprite",
+      "message": "referenced resource UUID does not exist in this project"
     }
   ]
 }
 ```
 
-This is a design example, not a released API. Freeze only after command/schema tests exist.
+This documents the version-1 top-level envelope used by `hycel-cli`; per-command result objects and diagnostic codes are described in [`cli.md`](cli.md). The exact envelope and failure behavior have unit-test coverage. Broader protocol/tool operations remain planned.
