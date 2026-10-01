@@ -5,14 +5,21 @@
 //! simulation never reads ambient time itself.
 
 mod math;
+mod replay;
 mod schedule;
+mod state_hash;
 mod world;
 
 pub use math::{Angle, MathError, SimScalar, Transform2D, Vec2};
+pub use replay::{
+    MAX_ACTIONS_PER_FRAME, MAX_REPLAY_FRAMES, MAX_REPLAY_JSON_BYTES, REPLAY_SCHEMA_VERSION, Replay,
+    ReplayError, ReplayHeader,
+};
 pub use schedule::{
     DeterministicRng, InputFrame, RngError, Schedule, ScheduleError, ScheduledEvent, SystemError,
     SystemId, TickContext,
 };
+pub use state_hash::{CanonicalState, CanonicalWriter, StateHash};
 pub use world::{ComponentStorage, EntityId, World, WorldError};
 
 const NANOS_PER_SECOND: u128 = 1_000_000_000;

@@ -1,5 +1,6 @@
 use mycel_core::{
-    DEFAULT_TICKS_PER_SECOND, FixedClock, InputFrame as TickInputFrame, Schedule, SystemId,
+    CanonicalState, CanonicalWriter, DEFAULT_TICKS_PER_SECOND, FixedClock,
+    InputFrame as TickInputFrame, Replay, Schedule, ScheduleError, SystemId,
 };
 
 // Small, headless proof that Mycel's chosen 1.0 target—a deterministic 2D
@@ -10,6 +11,8 @@ const JUMP_SPEED_MILLI_UNITS_PER_TICK: i64 = -60;
 const GRAVITY_MILLI_UNITS_PER_TICK: i64 = 2;
 const HORIZONTAL_ACTION: u16 = 0;
 const JUMP_ACTION: u16 = 1;
+const DEMO_SEED: u64 = 0x004d_5943_454c;
+const DEMO_STREAM: u64 = 0;
 
 #[derive(Debug, Clone, Copy, Default)]
 struct InputFrame {
@@ -28,6 +31,15 @@ struct PlatformerState {
     grounded: bool,
 }
 
+impl CanonicalState for PlatformerState {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_i64(self.x_milli_units);
+        writer.write_i64(self.y_milli_units);
+        writer.write_i64(self.vertical_velocity);
+        writer.write_bool(self.grounded);
+    }
+}
+
 impl Default for PlatformerState {
     fn default() -> Self {
         Self {
@@ -42,6 +54,12 @@ impl Default for PlatformerState {
 #[derive(Debug, Clone, Copy, Default)]
 struct PlatformerPrototype {
     player: PlatformerState,
+}
+
+impl CanonicalState for PlatformerPrototype {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        self.player.write_canonical(writer);
+    }
 }
 
 impl PlatformerPrototype {
@@ -78,10 +96,8 @@ impl PlatformerPrototype {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut clock = FixedClock::new(DEFAULT_TICKS_PER_SECOND)?;
-    let mut game = PlatformerPrototype::default();
-    let mut schedule = Schedule::<PlatformerPrototype, ()>::new(0x004d_5943_454c, 0);
+fn platformer_schedule() -> Result<Schedule<PlatformerPrototype, ()>, ScheduleError> {
+    let mut schedule = Schedule::<PlatformerPrototype, ()>::new(DEMO_SEED, DEMO_STREAM);
     schedule.add_system(0, SystemId::new(1), |game, context| {
         game.step(InputFrame {
             horizontal: context.input().axis(HORIZONTAL_ACTION),
@@ -89,6 +105,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
         Ok(())
     })?;
+    Ok(schedule)
+}
+
+fn record_demo() -> Result<(PlatformerPrototype, i64, Replay), Box<dyn std::error::Error>> {
+    let mut clock = FixedClock::new(DEFAULT_TICKS_PER_SECOND)?;
+    let mut game = PlatformerPrototype::default();
+    let mut schedule = platformer_schedule()?;
+    let mut recorded_inputs = Vec::new();
     let mut highest_jump_milli_units = 0_i64;
 
     // Run a short, repeatable headless platformer session: move right and jump
@@ -103,25 +127,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         input.set_axis(HORIZONTAL_ACTION, 1);
         input.set_button(JUMP_ACTION, frame == 30);
         schedule.run_tick(&mut game, &input)?;
+        recorded_inputs.push(input);
         highest_jump_milli_units = highest_jump_milli_units.min(game.player.y_milli_units);
     }
 
     if schedule.next_tick() != clock.tick() {
         return Err("clock and simulation schedule ticks diverged".into());
     }
+    let replay = Replay::new(
+        DEFAULT_TICKS_PER_SECOND,
+        DEMO_SEED,
+        DEMO_STREAM,
+        recorded_inputs,
+    )?;
+    Ok((game, highest_jump_milli_units, replay))
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let (game, highest_jump_milli_units, replay) = record_demo()?;
+    let replay = Replay::from_json(&replay.to_json()?)?;
+    let mut playback_game = PlatformerPrototype::default();
+    replay.playback(
+        &mut platformer_schedule()?,
+        &mut playback_game,
+        DEFAULT_TICKS_PER_SECOND,
+    )?;
+    let state_hash = game.state_hash();
+    if state_hash != playback_game.state_hash() {
+        return Err("headless replay state hash did not match recorded simulation".into());
+    }
+
     println!(
-        "Mycel platformer prototype: ticks={}, x={} milli-units, highest_jump={} milli-units, grounded={}",
-        schedule.next_tick(),
+        "Mycel platformer prototype: ticks={}, x={} milli-units, highest_jump={} milli-units, grounded={}, state_hash={}",
+        replay.frames().len(),
         game.player.x_milli_units,
         highest_jump_milli_units,
-        game.player.grounded
+        game.player.grounded,
+        state_hash
     );
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{InputFrame, PlatformerPrototype};
+    use super::{
+        DEFAULT_TICKS_PER_SECOND, InputFrame, PlatformerPrototype, platformer_schedule, record_demo,
+    };
+    use mycel_core::{CanonicalState, Replay};
 
     #[test]
     fn player_moves_horizontally_by_fixed_tick_amount() {
@@ -173,6 +225,22 @@ mod tests {
         });
         assert!(game.player.vertical_velocity > velocity_after_jump);
         assert!(!game.player.grounded);
+    }
+
+    #[test]
+    fn recorded_json_replay_reproduces_the_canonical_platformer_hash() {
+        let (recorded, _, replay) = record_demo().unwrap();
+        let json = replay.to_json().unwrap();
+        let replay = Replay::from_json(&json).unwrap();
+        let mut playback = PlatformerPrototype::default();
+        replay
+            .playback(
+                &mut platformer_schedule().unwrap(),
+                &mut playback,
+                DEFAULT_TICKS_PER_SECOND,
+            )
+            .unwrap();
+        assert_eq!(recorded.state_hash(), playback.state_hash());
     }
 
     #[test]

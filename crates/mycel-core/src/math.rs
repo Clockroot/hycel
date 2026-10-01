@@ -4,11 +4,19 @@
 //! units increase clockwise. Rendering may convert these values to floats at the
 //! presentation boundary; simulation state does not use floating-point math.
 
+use crate::{CanonicalState, CanonicalWriter};
+
 const MILLI_UNITS_PER_WORLD_UNIT: i128 = 1_000;
 
 /// Fixed-point simulation scalar with one-thousandth-world-unit precision.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SimScalar(i64);
+
+impl CanonicalState for SimScalar {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_i64(self.0);
+    }
+}
 
 impl SimScalar {
     /// Zero world units.
@@ -92,6 +100,13 @@ pub struct Vec2 {
     pub y: SimScalar,
 }
 
+impl CanonicalState for Vec2 {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        self.x.write_canonical(writer);
+        self.y.write_canonical(writer);
+    }
+}
+
 impl Vec2 {
     /// Zero vector.
     pub const ZERO: Self = Self::new(SimScalar::ZERO, SimScalar::ZERO);
@@ -136,6 +151,12 @@ impl Vec2 {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Angle(u16);
 
+impl CanonicalState for Angle {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_u16(self.0);
+    }
+}
+
 impl Angle {
     /// Zero degrees.
     pub const ZERO: Self = Self(0);
@@ -165,6 +186,14 @@ pub struct Transform2D {
     pub translation: Vec2,
     pub rotation: Angle,
     pub scale: Vec2,
+}
+
+impl CanonicalState for Transform2D {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        self.translation.write_canonical(writer);
+        self.rotation.write_canonical(writer);
+        self.scale.write_canonical(writer);
+    }
 }
 
 impl Default for Transform2D {

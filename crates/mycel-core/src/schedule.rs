@@ -7,6 +7,13 @@
 //! effects because failed ticks restore the state, RNG, and event queue.
 
 use std::collections::BTreeMap;
+use std::fmt;
+use std::marker::PhantomData;
+
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
+
+use crate::{CanonicalState, CanonicalWriter};
 
 /// Stable numeric identifier for one scheduled system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -31,11 +38,67 @@ impl SystemId {
 /// Numeric action IDs are deliberately generic; named/rebindable player actions
 /// are defined at a higher layer. Missing buttons are false and missing axes are
 /// zero. Axis values use the full signed `i16` range.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InputFrame {
     tick: u64,
+    #[serde(deserialize_with = "deserialize_unique_map")]
     buttons: BTreeMap<u16, bool>,
+    #[serde(deserialize_with = "deserialize_unique_map")]
     axes: BTreeMap<u16, i16>,
+}
+
+fn deserialize_unique_map<'de, D, K, V>(deserializer: D) -> Result<BTreeMap<K, V>, D::Error>
+where
+    D: Deserializer<'de>,
+    K: Deserialize<'de> + Ord,
+    V: Deserialize<'de>,
+{
+    struct UniqueMapVisitor<K, V>(PhantomData<(K, V)>);
+
+    impl<'de, K, V> Visitor<'de> for UniqueMapVisitor<K, V>
+    where
+        K: Deserialize<'de> + Ord,
+        V: Deserialize<'de>,
+    {
+        type Value = BTreeMap<K, V>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("a map with unique keys")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            let mut values = BTreeMap::new();
+            while let Some((key, value)) = map.next_entry()? {
+                if values.contains_key(&key) {
+                    return Err(de::Error::custom("duplicate action ID"));
+                }
+                values.insert(key, value);
+            }
+            Ok(values)
+        }
+    }
+
+    deserializer.deserialize_map(UniqueMapVisitor(PhantomData))
+}
+
+impl CanonicalState for InputFrame {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_u64(self.tick);
+        writer.write_sequence_len(self.buttons.len());
+        for (action, pressed) in &self.buttons {
+            writer.write_u16(*action);
+            writer.write_bool(*pressed);
+        }
+        writer.write_sequence_len(self.axes.len());
+        for (action, value) in &self.axes {
+            writer.write_u16(*action);
+            writer.write_i16(*value);
+        }
+    }
 }
 
 impl InputFrame {
@@ -58,6 +121,10 @@ impl InputFrame {
     /// Sets a digital action state.
     pub fn set_button(&mut self, action_id: u16, pressed: bool) {
         self.buttons.insert(action_id, pressed);
+    }
+
+    pub(crate) fn action_count(&self) -> usize {
+        self.buttons.len() + self.axes.len()
     }
 
     /// Whether the digital action is pressed; absent actions are not pressed.
@@ -581,6 +648,12 @@ mod tests {
         }
 
         assert_eq!(outcome(false), outcome(true));
+    }
+
+    #[test]
+    fn serialized_input_frame_rejects_duplicate_action_ids() {
+        let duplicate = r#"{"tick":0,"buttons":{"1":true,"1":false},"axes":{}}"#;
+        assert!(serde_json::from_str::<InputFrame>(duplicate).is_err());
     }
 
     #[test]

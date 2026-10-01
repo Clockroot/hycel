@@ -5,12 +5,21 @@
 
 use std::collections::BTreeMap;
 
+use crate::{CanonicalState, CanonicalWriter};
+
 /// Runtime identity for one entity. Fields are intentionally private; create IDs
 /// through [`World::spawn`] and inspect them through the accessors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EntityId {
     index: u32,
     generation: u32,
+}
+
+impl CanonicalState for EntityId {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_u32(self.index);
+        writer.write_u32(self.generation);
+    }
 }
 
 impl EntityId {
@@ -38,8 +47,23 @@ struct EntitySlot {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct World {
     slots: Vec<EntitySlot>,
-    free_indices: Vec<usize>,
+    free_indices: Vec<u32>,
     alive_count: usize,
+}
+
+impl CanonicalState for World {
+    fn write_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_sequence_len(self.slots.len());
+        for slot in &self.slots {
+            slot.id.write_canonical(writer);
+            writer.write_bool(slot.alive);
+        }
+        writer.write_sequence_len(self.free_indices.len());
+        for index in &self.free_indices {
+            writer.write_u32(*index);
+        }
+        writer.write_sequence_len(self.alive_count);
+    }
 }
 
 impl World {
@@ -55,7 +79,8 @@ impl World {
     /// representable.
     pub fn spawn(&mut self) -> Result<EntityId, WorldError> {
         if let Some(index) = self.free_indices.pop() {
-            let slot = &mut self.slots[index];
+            let slot_index = usize::try_from(index).map_err(|_| WorldError::CapacityExceeded)?;
+            let slot = &mut self.slots[slot_index];
             debug_assert!(!slot.alive);
             slot.alive = true;
             self.alive_count += 1;
@@ -95,7 +120,7 @@ impl World {
         self.alive_count -= 1;
         if let Some(next_generation) = slot.id.generation.checked_add(1) {
             slot.id.generation = next_generation;
-            self.free_indices.push(slot_index);
+            self.free_indices.push(entity.index);
         }
         Ok(())
     }
@@ -150,6 +175,19 @@ impl<T> Default for ComponentStorage<T> {
 }
 
 impl<T> ComponentStorage<T> {
+    /// Emits live entries in canonical entity order. Stale entries are excluded
+    /// even if the owner has not yet reclaimed their memory.
+    pub fn write_live_canonical(&self, world: &World, writer: &mut CanonicalWriter)
+    where
+        T: CanonicalState,
+    {
+        writer.write_sequence_len(self.iter(world).count());
+        for (entity, component) in self.iter(world) {
+            entity.write_canonical(writer);
+            component.write_canonical(writer);
+        }
+    }
+
     /// Adds or replaces a component on a live entity.
     ///
     /// Returns the prior component when replacing it.
@@ -228,6 +266,36 @@ impl std::error::Error for WorldError {}
 #[cfg(test)]
 mod tests {
     use super::{ComponentStorage, World, WorldError};
+    use crate::{CanonicalState, CanonicalWriter};
+
+    #[derive(Clone)]
+    struct HashableWorld {
+        world: World,
+        health: ComponentStorage<i64>,
+    }
+
+    impl CanonicalState for HashableWorld {
+        fn write_canonical(&self, writer: &mut CanonicalWriter) {
+            self.world.write_canonical(writer);
+            self.health.write_live_canonical(&self.world, writer);
+        }
+    }
+
+    #[test]
+    fn live_component_hash_ignores_unreclaimed_stale_entries() {
+        let mut world = World::default();
+        let entity = world.spawn().unwrap();
+        let mut health = ComponentStorage::default();
+        health.insert(&world, entity, 100_i64).unwrap();
+        let state = HashableWorld { world, health };
+        let mut after_despawn = state.clone();
+        after_despawn.world.despawn(entity).unwrap();
+        let mut after_cleanup = after_despawn.clone();
+        after_cleanup.health.retain_alive(&after_cleanup.world);
+
+        assert_eq!(after_despawn.state_hash(), after_cleanup.state_hash());
+        assert_ne!(state.state_hash(), after_despawn.state_hash());
+    }
 
     #[test]
     fn spawn_and_despawn_are_deterministic_and_reuse_increments_generation() {

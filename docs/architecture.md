@@ -49,7 +49,9 @@ For release 0.1:
 - systems are registered before tick zero, execute serially by `(order, SystemId)`, and cannot be changed once execution starts; tick-indexed input snapshots use ordered numeric action maps;
 - events emitted in a tick are delivered next tick in `(delivery tick, producer SystemId, emission sequence)` order, with one shared immutable event set per tick;
 - a failed system restores the cloned authoritative state, RNG stream, queued events, and tick position. Callbacks must not cause external side effects;
-- replay format includes schema version, seed, tick-indexed inputs, and compatibility metadata;
+- replay JSON schema 1 records engine version, target triple, tick rate, seed/base RNG stream, and contiguous tick-indexed input frames; unknown/duplicate fields are rejected and input/output sizes are bounded;
+- headless playback requires exact replay compatibility metadata and uses the same schedule; the demo verifies playback by comparing versioned SHA-256 hashes of canonical authoritative state;
+- no cross-architecture bitwise guarantee is made until explicit cross-target replay/hash fixtures demonstrate it;
 - headless execution uses the same simulation schedule as the interactive executable;
 - deterministic guarantee is scoped to the same engine version, platform target, and supported game-code subset until cross-platform bitwise tests prove more.
 
