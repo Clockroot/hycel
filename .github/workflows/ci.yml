@@ -42,7 +42,7 @@ jobs:
     env:
       EXPECTED_RUST_TARGET: ${{ matrix.target }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -69,7 +69,7 @@ jobs:
     name: Minimum supported Rust version
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.85.1
       - name: Test with declared MSRV
         run: cargo test --workspace --all-targets --locked
@@ -78,7 +78,7 @@ jobs:
     name: Documentation and repository hygiene
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt

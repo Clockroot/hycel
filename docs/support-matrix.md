@@ -6,12 +6,12 @@ This is the planned 1.0 target contract selected in Phase 1.2. A row is **not ye
 
 | OS family | Minimum supported OS | CPU architecture | Rust target triple | GitHub Actions runner | Planned graphics backend | Status |
 |---|---|---|---|---|---|---|
-| macOS | macOS 14 Sonoma | x86-64 | `x86_64-apple-darwin` | `macos-15-intel` | Metal | Planned; not runtime-verified |
-| macOS | macOS 14 Sonoma | ARM64 | `aarch64-apple-darwin` | `macos-15` | Metal | Planned; not runtime-verified |
-| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | x86-64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04` | Vulkan 1.1+ | Planned; not runtime-verified |
-| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | ARM64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Vulkan 1.1+ | Planned; not runtime-verified |
-| Windows | Windows 11 24H2 (build 26100)+ | x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` (native x64) | Direct3D 12 | Planned; not runtime-verified on client Windows 11 |
-| Windows | Windows 11 24H2 (build 26100)+ | ARM64 | `aarch64-pc-windows-msvc` | `windows-11-arm` | Direct3D 12 | Planned; not runtime-verified |
+| macOS | macOS 14 Sonoma | x86-64 | `x86_64-apple-darwin` | `macos-15-intel` | Metal | Experimental; native headless CI only |
+| macOS | macOS 14 Sonoma | ARM64 | `aarch64-apple-darwin` | `macos-15` | Metal | Experimental; native headless CI only |
+| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | x86-64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04` | Vulkan 1.1+ | Experimental; native headless CI only |
+| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | ARM64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Vulkan 1.1+ | Experimental; native headless CI only |
+| Windows | Windows 11 24H2 (build 26100)+ | x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` (native x64) | Direct3D 12 | Experimental; native headless CI only, not verified on client Windows 11 |
+| Windows | Windows 11 24H2 (build 26100)+ | ARM64 | `aarch64-pc-windows-msvc` | `windows-11-arm` | Direct3D 12 | Experimental; native headless CI only |
 
 Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-only restriction. Other distributions may work if they meet the ABI, driver, and dependency requirements, but are not individually certified by the baseline matrix.
 
@@ -36,3 +36,9 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 `.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native headless CI; keep this table in sync in the same change whenever a row changes. Each row must run formatting, Clippy, tests, and a release build for the listed native target. A green headless job proves only that Rust code builds/tests on that runner; it does not prove the graphics backend, minimum OS floor, or packaged game works.
 
 Phase 4/8 must add real runtime and packaging checks. Minimum-OS versions that are newer than the hosted runner's compatibility surface require dedicated manual/device validation and recorded evidence before status can change to supported.
+
+## Source references
+
+- [GitHub-hosted runner labels and architectures](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+- [Rust 1.85 and Rust 2024 edition stabilization](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html)
+- [`wgpu` supported platforms and backend selection](https://docs.rs/wgpu/latest/wgpu/struct.Backends.html)
