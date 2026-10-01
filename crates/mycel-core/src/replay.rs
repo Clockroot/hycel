@@ -552,7 +552,7 @@ mod tests {
             replay.playback(&mut schedule, &mut state, 60),
             Err(ReplayError::TargetMismatch { .. })
         ));
-        assert!(state.is_empty());
+        assert_eq!(state, Vec::<u32>::new());
         assert_eq!(schedule.next_tick(), 0);
     }
 
