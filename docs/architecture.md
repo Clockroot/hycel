@@ -57,7 +57,7 @@ Game logic may initially use Rust modules compiled into the game. Do not make dy
 
 ## Renderer/platform decision gate
 
-Before committing to a graphics abstraction, build a small spike that opens a window, clears/presents frames, draws a textured sprite, handles resize/input, and runs on macOS ARM64, Linux x86-64, and Windows x86-64. Record backend coverage, shader workflow, packaging, and failure modes. Candidate: Rust + `wgpu` for Metal/Vulkan/DX12 coverage. Keep the renderer boundary replaceable; do not expose backend types in game APIs.
+The planned 1.0 OS floors, Rust triples, and graphics backend mapping are recorded in [`support-matrix.md`](support-matrix.md). They remain planned—not supported—until native CI and actual runtime/package tests pass. Before committing to a graphics abstraction, build a small spike that opens a window, clears/presents frames, draws a textured sprite, handles resize/input, and runs on each declared OS/architecture. Candidate: Rust + `wgpu`, using Metal on macOS, Direct3D 12 on Windows, and Vulkan on Linux. Record backend coverage, shader workflow, packaging, minimum-OS behavior, and failure modes. Keep the renderer boundary replaceable; do not expose backend types in game APIs.
 
 ## Failure model
 

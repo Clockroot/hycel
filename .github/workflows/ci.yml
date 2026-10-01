@@ -14,38 +14,60 @@ concurrency:
 
 jobs:
   quality:
-    name: Quality (${{ matrix.os }})
+    name: Native (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
-        # Native CI on all six OS/architecture combinations in the release target.
-        # GitHub runner labels: macOS 15 Intel/ARM, Ubuntu 24.04 ARM, Windows 11 ARM.
-        os:
-          - ubuntu-latest
-          - ubuntu-24.04-arm
-          - macos-15-intel
-          - macos-15
-          - windows-latest
-          - windows-11-arm
-    runs-on: ${{ matrix.os }}
+        # Canonical six-row target matrix; keep docs/support-matrix.md in sync.
+        include:
+          - name: Linux x86-64 (Ubuntu 24.04)
+            runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - name: Linux ARM64 (Ubuntu 24.04)
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - name: macOS x86-64 (macOS 15 Intel)
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+          - name: macOS ARM64 (macOS 15)
+            runner: macos-15
+            target: aarch64-apple-darwin
+          - name: Windows x86-64 (Windows Server 2025 runner)
+            runner: windows-2025
+            target: x86_64-pc-windows-msvc
+          - name: Windows ARM64 (Windows 11)
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    env:
+      EXPECTED_RUST_TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
+      - name: Verify native runner architecture
+        shell: bash
+        run: |
+          actual="$(rustc -vV | sed -n 's/^host: //p')"
+          echo "Runner Rust host: $actual"
+          test "$actual" = "$EXPECTED_RUST_TARGET"
+      - name: Set macOS 14 deployment floor
+        if: contains(matrix.target, 'apple-darwin')
+        run: echo "MACOSX_DEPLOYMENT_TARGET=14.0" >> "$GITHUB_ENV"
       - name: Formatting
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --target ${{ matrix.target }} --locked -- -D warnings
       - name: Tests
-        run: cargo test --workspace --all-targets
-      - name: Build demo
-        run: cargo build --release -p mycel-demo
+        run: cargo test --workspace --all-targets --target ${{ matrix.target }} --locked
+      - name: Native release build
+        run: cargo build --release --workspace --target ${{ matrix.target }} --locked
 
   msrv:
     name: Minimum supported Rust version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.85.1
@@ -54,7 +76,7 @@ jobs:
 
   docs:
     name: Documentation and repository hygiene
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -63,6 +85,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check documentation builds
-        run: cargo doc --workspace --no-deps
+        run: cargo doc --workspace --no-deps --locked
         env:
           RUSTDOCFLAGS: -D warnings

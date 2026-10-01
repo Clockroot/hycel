@@ -10,7 +10,7 @@ Mycel is a Rust-first, 2D desktop game engine for building, inspecting, testing,
 
 - **Implementation:** Rust is the primary language for engine, runtime, editor, CLI, and agent-facing services. Keep handwritten non-Rust implementation small and limited to necessary platform bindings, shaders, or build integration; do not make a second language or web runtime a core requirement.
 - **Genre explicitly promised:** small, single-player, side-view 2D platformers.
-- **Platforms:** macOS, Linux, and Windows on x86-64 and ARM64, but an individual OS/architecture is a supported 1.0 target only after its native CI, runtime smoke tests, and packaging pass. Untested pairs remain experimental.
+- **Platforms:** macOS 14+, Linux glibc 2.39+ (Ubuntu 24.04 baseline), and Windows 11 24H2+ on x86-64 and ARM64, but an individual OS/architecture is a supported 1.0 target only after its native CI, runtime smoke tests, and packaging pass. Untested pairs remain experimental. Exact Rust triples and planned graphics backends are in [`support-matrix.md`](support-matrix.md).
 - **Workflow:** project creation, validation, scene/content editing, run, test, replay, diagnose, and package work through documented interfaces. A visual editor is helpful but not required for headless/agent operation.
 - **Agent access:** basic agents can read and edit text project/code files and invoke documented build/test commands. Advanced agents can use bounded, structured inspect/edit/test/replay operations through a stable interface. Agent integrations are optional adapters; no model vendor/account is required.
 
