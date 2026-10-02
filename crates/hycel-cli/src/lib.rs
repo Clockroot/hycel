@@ -917,12 +917,14 @@ fn starter_input_bytes() -> Result<Vec<u8>, (i32, OutputDiagnostic)> {
         FocusLossBehavior::ReleaseAll,
         vec![ButtonBinding::new(
             1,
+            "jump",
             vec![InputControl::Key {
                 code: KeyCode::Space,
             }],
         )],
         vec![AxisBinding::new(
             0,
+            "move_horizontal",
             vec![
                 InputControl::Key {
                     code: KeyCode::KeyA,
@@ -1261,9 +1263,11 @@ mod tests {
 
         let input_bytes = fs::read(project.join("input.json")).unwrap();
         let input = InputBindings::parse_json(&input_bytes).unwrap();
-        assert_eq!(input.schema_version(), 1);
+        assert_eq!(input.schema_version(), 2);
         assert_eq!(input.buttons().len(), 1);
         assert_eq!(input.axes().len(), 1);
+        assert_eq!(input.action_id("jump"), Some(1));
+        assert_eq!(input.action_id("move_horizontal"), Some(0));
 
         let check = execute(args(["check", project.to_str().unwrap(), "--json"]));
         assert_eq!(check.exit_code, 0, "{}", check.stdout);

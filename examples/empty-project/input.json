@@ -1,9 +1,10 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "focus_loss": "release_all",
   "buttons": [
     {
       "action_id": 1,
+      "name": "jump",
       "controls": [
         {
           "kind": "key",
@@ -15,6 +16,7 @@
   "axes": [
     {
       "action_id": 0,
+      "name": "move_horizontal",
       "negative": [
         {
           "kind": "key",

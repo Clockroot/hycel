@@ -16,6 +16,7 @@ const MAX_BUTTON_ACTIONS: usize = 256;
 const MAX_AXIS_ACTIONS: usize = 128;
 const MAX_CONTROLS_PER_ACTION: usize = 64;
 const MAX_TOTAL_CONTROLS: usize = 512;
+const MAX_ACTION_NAME_BYTES: usize = 64;
 
 /// Stable physical keyboard key names used in project input bindings.
 ///
@@ -133,15 +134,17 @@ pub enum FocusLossBehavior {
 #[serde(deny_unknown_fields)]
 pub struct ButtonBinding {
     action_id: u16,
+    name: String,
     controls: Vec<InputControl>,
 }
 
 impl ButtonBinding {
     /// Creates one button action binding. A control press sets this action true.
     #[must_use]
-    pub fn new(action_id: u16, controls: Vec<InputControl>) -> Self {
+    pub fn new(action_id: u16, name: impl Into<String>, controls: Vec<InputControl>) -> Self {
         Self {
             action_id,
+            name: name.into(),
             controls,
         }
     }
@@ -150,6 +153,12 @@ impl ButtonBinding {
     #[must_use]
     pub const fn action_id(&self) -> u16 {
         self.action_id
+    }
+
+    /// Stable lowercase action name used in project bindings and gameplay code.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Alternative controls that activate this action.
@@ -164,6 +173,7 @@ impl ButtonBinding {
 #[serde(deny_unknown_fields)]
 pub struct AxisBinding {
     action_id: u16,
+    name: String,
     negative: Vec<InputControl>,
     positive: Vec<InputControl>,
 }
@@ -172,9 +182,15 @@ impl AxisBinding {
     /// Creates an axis binding. Negative-only input maps to `i16::MIN`, positive-only to
     /// `i16::MAX`, and simultaneous opposing input cancels to zero.
     #[must_use]
-    pub fn new(action_id: u16, negative: Vec<InputControl>, positive: Vec<InputControl>) -> Self {
+    pub fn new(
+        action_id: u16,
+        name: impl Into<String>,
+        negative: Vec<InputControl>,
+        positive: Vec<InputControl>,
+    ) -> Self {
         Self {
             action_id,
+            name: name.into(),
             negative,
             positive,
         }
@@ -184,6 +200,12 @@ impl AxisBinding {
     #[must_use]
     pub const fn action_id(&self) -> u16 {
         self.action_id
+    }
+
+    /// Stable lowercase action name used in project bindings and gameplay code.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Controls that contribute the negative axis value.
@@ -199,7 +221,7 @@ impl AxisBinding {
     }
 }
 
-/// Validated version-1 input-bindings document, normally stored as `input.json`.
+/// Validated version-2 input-bindings document, normally stored as `input.json`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct InputBindings {
@@ -211,17 +233,48 @@ pub struct InputBindings {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct InputBindingsWire {
+struct InputBindingsV2Wire {
     schema_version: u32,
     focus_loss: FocusLossBehavior,
     buttons: Vec<ButtonBinding>,
     axes: Vec<AxisBinding>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InputBindingsV1Wire {
+    schema_version: u32,
+    focus_loss: FocusLossBehavior,
+    buttons: Vec<ButtonBindingV1Wire>,
+    axes: Vec<AxisBindingV1Wire>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ButtonBindingV1Wire {
+    action_id: u16,
+    controls: Vec<InputControl>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AxisBindingV1Wire {
+    action_id: u16,
+    negative: Vec<InputControl>,
+    positive: Vec<InputControl>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum InputBindingsWire {
+    V2(InputBindingsV2Wire),
+    V1(InputBindingsV1Wire),
+}
+
 impl Default for InputBindings {
     fn default() -> Self {
         Self {
-            schema_version: 1,
+            schema_version: 2,
             focus_loss: FocusLossBehavior::ReleaseAll,
             buttons: Vec::new(),
             axes: Vec::new(),
@@ -230,7 +283,7 @@ impl Default for InputBindings {
 }
 
 impl InputBindings {
-    /// Creates and validates a version-1 action mapping.
+    /// Creates and validates a version-2 action mapping.
     ///
     /// # Errors
     ///
@@ -241,7 +294,7 @@ impl InputBindings {
         axes: Vec<AxisBinding>,
     ) -> Result<Self, InputBindingsError> {
         let bindings = Self {
-            schema_version: 1,
+            schema_version: 2,
             focus_loss,
             buttons,
             axes,
@@ -270,14 +323,51 @@ impl InputBindings {
                 format!("invalid or unknown input-binding fields: {error}"),
             )
         })?;
-        if wire.schema_version != 1 {
-            return Err(InputBindingsError::new(
-                InputBindingsErrorKind::UnsupportedVersion,
-                "$.schema_version",
-                "unsupported input-bindings schema version",
-            ));
+        match wire {
+            InputBindingsWire::V2(wire) => {
+                if wire.schema_version != 2 {
+                    return Err(InputBindingsError::new(
+                        InputBindingsErrorKind::UnsupportedVersion,
+                        "$.schema_version",
+                        "unsupported input-bindings schema version",
+                    ));
+                }
+                Self::new(wire.focus_loss, wire.buttons, wire.axes)
+            }
+            InputBindingsWire::V1(wire) => {
+                if wire.schema_version != 1 {
+                    return Err(InputBindingsError::new(
+                        InputBindingsErrorKind::UnsupportedVersion,
+                        "$.schema_version",
+                        "unsupported input-bindings schema version",
+                    ));
+                }
+                let buttons = wire
+                    .buttons
+                    .into_iter()
+                    .map(|binding| {
+                        ButtonBinding::new(
+                            binding.action_id,
+                            legacy_action_name(binding.action_id),
+                            binding.controls,
+                        )
+                    })
+                    .collect();
+                let axes = wire
+                    .axes
+                    .into_iter()
+                    .map(|binding| {
+                        AxisBinding::new(
+                            binding.action_id,
+                            legacy_action_name(binding.action_id),
+                            binding.negative,
+                            binding.positive,
+                        )
+                    })
+                    .collect();
+                Self::new(wire.focus_loss, buttons, axes)
+            }
         }
-        Self::new(wire.focus_loss, wire.buttons, wire.axes)
     }
 
     /// Serializes the validated document as deterministic, pretty-printed JSON with a final LF.
@@ -292,7 +382,7 @@ impl InputBindings {
     }
 
     fn validate(&self) -> Result<(), InputBindingsError> {
-        if self.schema_version != 1 {
+        if self.schema_version != 2 {
             return Err(InputBindingsError::new(
                 InputBindingsErrorKind::UnsupportedVersion,
                 "$.schema_version",
@@ -309,6 +399,7 @@ impl InputBindings {
             ));
         }
         let mut action_ids = BTreeSet::new();
+        let mut action_names = BTreeSet::new();
         let mut total_controls = 0_usize;
         for (index, binding) in self.buttons.iter().enumerate() {
             let path = format!("$.buttons[{index}]");
@@ -317,6 +408,14 @@ impl InputBindings {
                     InputBindingsErrorKind::InvalidBinding,
                     format!("{path}.action_id"),
                     "action IDs must be unique across button and axis bindings",
+                ));
+            }
+            validate_action_name(&binding.name, &format!("{path}.name"))?;
+            if !action_names.insert(binding.name.as_str()) {
+                return Err(InputBindingsError::new(
+                    InputBindingsErrorKind::InvalidBinding,
+                    format!("{path}.name"),
+                    "action names must be unique across button and axis bindings",
                 ));
             }
             validate_controls(&binding.controls, &format!("{path}.controls"), false)?;
@@ -329,6 +428,14 @@ impl InputBindings {
                     InputBindingsErrorKind::InvalidBinding,
                     format!("{path}.action_id"),
                     "action IDs must be unique across button and axis bindings",
+                ));
+            }
+            validate_action_name(&binding.name, &format!("{path}.name"))?;
+            if !action_names.insert(binding.name.as_str()) {
+                return Err(InputBindingsError::new(
+                    InputBindingsErrorKind::InvalidBinding,
+                    format!("{path}.name"),
+                    "action names must be unique across button and axis bindings",
                 ));
             }
             if binding.negative.is_empty() && binding.positive.is_empty() {
@@ -388,6 +495,44 @@ impl InputBindings {
     pub fn axes(&self) -> &[AxisBinding] {
         &self.axes
     }
+
+    /// Finds a stable numeric action ID by its configured name.
+    #[must_use]
+    pub fn action_id(&self, name: &str) -> Option<u16> {
+        self.buttons
+            .iter()
+            .find(|binding| binding.name == name)
+            .map(|binding| binding.action_id)
+            .or_else(|| {
+                self.axes
+                    .iter()
+                    .find(|binding| binding.name == name)
+                    .map(|binding| binding.action_id)
+            })
+    }
+}
+
+fn legacy_action_name(action_id: u16) -> String {
+    format!("action_{action_id}")
+}
+
+fn validate_action_name(name: &str, path: &str) -> Result<(), InputBindingsError> {
+    let valid = !name.is_empty()
+        && name.len() <= MAX_ACTION_NAME_BYTES
+        && name.as_bytes()[0].is_ascii_lowercase()
+        && name.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"_-".contains(&byte)
+        });
+    if !valid {
+        return Err(InputBindingsError::new(
+            InputBindingsErrorKind::InvalidBinding,
+            path,
+            format!(
+                "action name must be a lowercase ASCII identifier of 1..={MAX_ACTION_NAME_BYTES} bytes"
+            ),
+        ));
+    }
+    Ok(())
 }
 
 fn validate_controls(
@@ -522,6 +667,140 @@ fn update_set<T: Ord>(set: &mut BTreeSet<T>, value: T, pressed: bool) {
     }
 }
 
+/// A button action state transition derived from consecutive tick-indexed input frames.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ButtonActionEvent {
+    action_id: u16,
+    action_name: String,
+    kind: ButtonActionEventKind,
+}
+
+impl ButtonActionEvent {
+    /// Stable numeric action ID stored in input frames and replays.
+    #[must_use]
+    pub const fn action_id(&self) -> u16 {
+        self.action_id
+    }
+
+    /// Configured action name.
+    #[must_use]
+    pub fn action_name(&self) -> &str {
+        &self.action_name
+    }
+
+    /// Whether the action became pressed or released.
+    #[must_use]
+    pub const fn kind(&self) -> ButtonActionEventKind {
+        self.kind
+    }
+}
+
+/// Direction of a digital action transition.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ButtonActionEventKind {
+    /// Action changed from released to pressed.
+    Pressed,
+    /// Action changed from pressed to released.
+    Released,
+}
+
+/// Derives named button-action edges from the same input frames used by simulation and replay.
+#[derive(Clone, Debug, Default)]
+pub struct ActionEventTracker {
+    previous_buttons: std::collections::BTreeMap<u16, bool>,
+    previous_tick: Option<u64>,
+}
+
+impl ActionEventTracker {
+    /// Creates an empty event tracker. The first frame may have any tick; subsequent frames
+    /// must be contiguous so replayed action edges cannot silently omit transitions.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Derives button press/release events for one frame, in ascending stable action-ID order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InputActionEventError`] if this frame's tick is not contiguous with the last
+    /// successfully processed frame.
+    pub fn events_for_frame(
+        &mut self,
+        frame: &InputFrame,
+        bindings: &InputBindings,
+    ) -> Result<Vec<ButtonActionEvent>, InputActionEventError> {
+        if let Some(previous_tick) = self.previous_tick {
+            if previous_tick.checked_add(1) != Some(frame.tick()) {
+                return Err(InputActionEventError {
+                    expected_tick: previous_tick.saturating_add(1),
+                    actual_tick: frame.tick(),
+                });
+            }
+        }
+
+        let mut events = Vec::new();
+        let mut current_buttons = std::collections::BTreeMap::new();
+        for binding in &bindings.buttons {
+            let pressed = frame.button(binding.action_id);
+            let was_pressed = self
+                .previous_buttons
+                .get(&binding.action_id)
+                .copied()
+                .unwrap_or(false);
+            if pressed != was_pressed {
+                events.push(ButtonActionEvent {
+                    action_id: binding.action_id,
+                    action_name: binding.name.clone(),
+                    kind: if pressed {
+                        ButtonActionEventKind::Pressed
+                    } else {
+                        ButtonActionEventKind::Released
+                    },
+                });
+            }
+            current_buttons.insert(binding.action_id, pressed);
+        }
+        events.sort_by_key(|event| event.action_id);
+        self.previous_buttons = current_buttons;
+        self.previous_tick = Some(frame.tick());
+        Ok(events)
+    }
+}
+
+/// Error returned when tick-indexed input frames skip or repeat while deriving action edges.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InputActionEventError {
+    expected_tick: u64,
+    actual_tick: u64,
+}
+
+impl InputActionEventError {
+    /// Tick required after the previous successful frame.
+    #[must_use]
+    pub const fn expected_tick(&self) -> u64 {
+        self.expected_tick
+    }
+
+    /// Tick supplied by the invalid frame.
+    #[must_use]
+    pub const fn actual_tick(&self) -> u64 {
+        self.actual_tick
+    }
+}
+
+impl fmt::Display for InputActionEventError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "expected input tick {}, got {}",
+            self.expected_tick, self.actual_tick
+        )
+    }
+}
+
+impl Error for InputActionEventError {}
+
 /// Stable failure kind for parsing or validating persisted input bindings.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InputBindingsErrorKind {
@@ -586,8 +865,9 @@ impl Error for InputBindingsError {}
 #[cfg(test)]
 mod tests {
     use super::{
-        AxisBinding, ButtonBinding, FocusLossBehavior, InputBindings, InputBindingsErrorKind,
-        InputControl, InputEvent, InputMapper, KeyCode, MouseButton,
+        ActionEventTracker, AxisBinding, ButtonActionEvent, ButtonActionEventKind, ButtonBinding,
+        FocusLossBehavior, InputBindings, InputBindingsErrorKind, InputControl, InputEvent,
+        InputFrame, InputMapper, KeyCode, MouseButton,
     };
 
     fn key(code: KeyCode) -> InputControl {
@@ -603,10 +883,12 @@ mod tests {
             focus_loss,
             vec![ButtonBinding::new(
                 1,
+                "jump",
                 vec![key(KeyCode::Space), mouse(MouseButton::Left)],
             )],
             vec![AxisBinding::new(
                 2,
+                "move_horizontal",
                 vec![key(KeyCode::ArrowLeft)],
                 vec![key(KeyCode::ArrowRight)],
             )],
@@ -623,27 +905,27 @@ mod tests {
             InputBindings::parse_json(json.as_bytes()).unwrap(),
             bindings
         );
-        assert_eq!(bindings.schema_version(), 1);
+        assert_eq!(bindings.schema_version(), 2);
     }
 
     #[test]
     fn parser_rejects_unknown_fields_unsupported_versions_and_oversized_input() {
         assert_eq!(
             InputBindings::parse_json(
-                br#"{"schema_version":2,"focus_loss":"release_all","buttons":[],"axes":[]}"#
+                br#"{"schema_version":3,"focus_loss":"release_all","buttons":[],"axes":[]}"#
             )
             .unwrap_err()
             .kind(),
             InputBindingsErrorKind::UnsupportedVersion
         );
         assert_eq!(
-            InputBindings::parse_json(br#"{"schema_version":1,"focus_loss":"release_all","buttons":[],"axes":[],"extra":true}"#)
+            InputBindings::parse_json(br#"{"schema_version":2,"focus_loss":"release_all","buttons":[],"axes":[],"extra":true}"#)
                 .unwrap_err()
                 .kind(),
             InputBindingsErrorKind::InvalidDocument
         );
         assert_eq!(
-            InputBindings::parse_json(br#"{"schema_version":1,"schema_version":1,"focus_loss":"release_all","buttons":[],"axes":[]}"#)
+            InputBindings::parse_json(br#"{"schema_version":2,"schema_version":2,"focus_loss":"release_all","buttons":[],"axes":[]}"#)
                 .unwrap_err()
                 .kind(),
             InputBindingsErrorKind::InvalidDocument
@@ -657,12 +939,54 @@ mod tests {
     }
 
     #[test]
+    fn schema_one_migrates_numeric_actions_without_changing_replay_ids() {
+        let legacy = br#"{"schema_version":1,"focus_loss":"release_all","buttons":[{"action_id":1,"controls":[{"kind":"key","code":"Space"}]}],"axes":[{"action_id":0,"negative":[{"kind":"key","code":"KeyA"}],"positive":[{"kind":"key","code":"KeyD"}]}]}"#;
+        let migrated = InputBindings::parse_json(legacy).unwrap();
+        assert_eq!(migrated.schema_version(), 2);
+        assert_eq!(migrated.action_id("action_1"), Some(1));
+        assert_eq!(migrated.action_id("action_0"), Some(0));
+        let saved = migrated.to_json().unwrap();
+        assert!(saved.contains("\"schema_version\": 2"));
+        assert!(saved.contains("\"name\": \"action_1\""));
+    }
+
+    #[test]
+    fn invalid_or_duplicate_action_names_are_rejected() {
+        assert!(
+            InputBindings::new(
+                FocusLossBehavior::ReleaseAll,
+                vec![ButtonBinding::new(1, "Jump", vec![key(KeyCode::Space)])],
+                vec![],
+            )
+            .is_err()
+        );
+        assert!(
+            InputBindings::new(
+                FocusLossBehavior::ReleaseAll,
+                vec![ButtonBinding::new(1, "jump", vec![key(KeyCode::Space)])],
+                vec![AxisBinding::new(
+                    2,
+                    "jump",
+                    vec![key(KeyCode::KeyA)],
+                    vec![]
+                )],
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
     fn bindings_reject_duplicate_actions_controls_and_axis_directions() {
         assert_eq!(
             InputBindings::new(
                 FocusLossBehavior::ReleaseAll,
-                vec![ButtonBinding::new(3, vec![key(KeyCode::Space)])],
-                vec![AxisBinding::new(3, vec![], vec![key(KeyCode::KeyA)])],
+                vec![ButtonBinding::new(3, "fire", vec![key(KeyCode::Space)])],
+                vec![AxisBinding::new(
+                    3,
+                    "move",
+                    vec![],
+                    vec![key(KeyCode::KeyA)]
+                )],
             )
             .unwrap_err()
             .kind(),
@@ -673,6 +997,7 @@ mod tests {
                 FocusLossBehavior::ReleaseAll,
                 vec![ButtonBinding::new(
                     1,
+                    "jump",
                     vec![key(KeyCode::Space), key(KeyCode::Space)]
                 )],
                 vec![],
@@ -685,6 +1010,7 @@ mod tests {
                 vec![],
                 vec![AxisBinding::new(
                     2,
+                    "move",
                     vec![key(KeyCode::KeyA)],
                     vec![key(KeyCode::KeyA)],
                 )],
@@ -731,6 +1057,76 @@ mod tests {
         });
         assert_eq!(mapper.frame(7).axis(2), i16::MAX);
         assert!(!mapper.frame(7).button(99));
+    }
+
+    #[test]
+    fn named_button_events_are_replayable_edges_and_require_contiguous_ticks() {
+        let bindings = bindings(FocusLossBehavior::ReleaseAll);
+        let mut tracker = ActionEventTracker::new();
+        let mut recorded = Vec::new();
+        for (tick, pressed) in [(10, false), (11, true), (12, true), (13, false)] {
+            let mut frame = InputFrame::new(tick);
+            frame.set_button(1, pressed);
+            let events = tracker.events_for_frame(&frame, &bindings).unwrap();
+            recorded.push((frame, events));
+        }
+        assert!(recorded[0].1.is_empty());
+        assert_eq!(recorded[1].1[0].action_name(), "jump");
+        assert_eq!(recorded[1].1[0].kind(), ButtonActionEventKind::Pressed);
+        assert!(recorded[2].1.is_empty());
+        assert_eq!(recorded[3].1[0].kind(), ButtonActionEventKind::Released);
+
+        let mut replay_tracker = ActionEventTracker::new();
+        let replayed: Vec<_> = recorded
+            .iter()
+            .map(|(frame, _)| replay_tracker.events_for_frame(frame, &bindings).unwrap())
+            .collect();
+        assert_eq!(
+            replayed,
+            recorded
+                .iter()
+                .map(|(_, events)| events.clone())
+                .collect::<Vec<_>>()
+        );
+
+        let mut skipped = InputFrame::new(15);
+        skipped.set_button(1, false);
+        assert_eq!(
+            tracker
+                .events_for_frame(&skipped, &bindings)
+                .unwrap_err()
+                .expected_tick(),
+            14
+        );
+        let mut expected = InputFrame::new(14);
+        expected.set_button(1, false);
+        assert!(tracker.events_for_frame(&expected, &bindings).is_ok());
+    }
+
+    #[test]
+    fn action_events_use_numeric_id_order_not_authored_binding_order() {
+        let bindings = InputBindings::new(
+            FocusLossBehavior::ReleaseAll,
+            vec![
+                ButtonBinding::new(9, "later", vec![key(KeyCode::Space)]),
+                ButtonBinding::new(2, "earlier", vec![key(KeyCode::Enter)]),
+            ],
+            vec![],
+        )
+        .unwrap();
+        let mut frame = InputFrame::new(0);
+        frame.set_button(2, true);
+        frame.set_button(9, true);
+        let events = ActionEventTracker::new()
+            .events_for_frame(&frame, &bindings)
+            .unwrap();
+        assert_eq!(
+            events
+                .iter()
+                .map(ButtonActionEvent::action_id)
+                .collect::<Vec<_>>(),
+            [2, 9]
+        );
     }
 
     #[test]
