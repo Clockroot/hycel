@@ -1,0 +1,13 @@
+[package]
+name = "hycel-physics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+hycel-core = { path = "../hycel-core", version = "0.1.0" }
+rapier2d.workspace = true
+
+[lints]
+workspace = true

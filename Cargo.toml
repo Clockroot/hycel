@@ -7,6 +7,7 @@ members = [
     "crates/hycel-input",
     "crates/hycel-project",
     "crates/hycel-platform",
+    "crates/hycel-physics",
     "crates/hycel-render",
     "crates/hycel-demo",
 ]
@@ -28,6 +29,7 @@ toml = "0.9.7"
 winit = { version = "=0.31.0-beta.3", default-features = false, features = ["x11", "wayland", "wayland-dlopen"] }
 wgpu = { version = "=30.0.1", default-features = false, features = ["std", "parking_lot", "dx12", "metal", "vulkan", "wgsl"] }
 pollster = "=1.0.1"
+rapier2d = { version = "=0.32.0", default-features = false, features = ["dim2", "f32", "enhanced-determinism"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -14,9 +14,9 @@ project files / game code / agent clients
        project, asset, and build services
                  |
        runtime (schedule, scenes, input)
-          /            |             \
- simulation core   renderer       platform
- (deterministic)   (replaceable)  (window/input/audio)
+       /             |             |           \
+simulation core    physics      renderer       platform
+(deterministic)  (replaceable) (replaceable) (window/input/audio)
 ```
 
 Lower layers never depend on editor UI, agent protocol, or a particular host OS. Avoid global mutable state and implicit filesystem/network access. Platform-specific code stays behind narrow interfaces and is isolated in platform crates.
@@ -29,6 +29,7 @@ Workspace crate boundaries (split only when boundaries are real; avoid premature
 - `hycel-project`: project manifest, versioned scene/resource schemas, optional strict input-binding validation, bounded parsing, structured validation diagnostics, and explicit per-file scene migration/rollback.
 - `hycel-assets`: asset identity, import metadata, dependency reports, and content/import fingerprinting. Actual format decoders and transactional import execution remain future work.
 - `hycel-input`: versioned strict `input.json` schema, backend-independent physical control IDs/events, and a deterministic mapper to explicit tick-indexed `InputFrame`s. It depends on the platform-free core; `hycel-project` validates the optional project file and `hycel-platform` maps native events to its owned controls.
+- `hycel-physics`: Hycel-owned fixed-point box/body/contact APIs over Rapier2D. It steps serially at an explicit fixed tick rate, bounds body/coordinate inputs, and returns contact transitions sorted by stable Hycel body IDs. Rapier and floating-point details do not leak into `hycel-core`; cross-platform determinism is not claimed until integrated-game replay tests prove it.
 - `hycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
 - `hycel-render`: 2D renderer behind a backend boundary; ADR 0001 provisionally selects `wgpu 30.0.1` for Phase 4. Its initial API owns surface/device/pipeline objects and draws sorted tinted sprites from bounded RGBA uploads, applies camera/viewport transforms, and provides a bounded screen-space bitmap debug-text overlay. Asset decoding, advanced batching, general typography, and device recovery remain future work; see [`rendering.md`](rendering.md).
 - `hycel-platform`: window, files, clock, input, and OS integration adapters. Its initial single-window lifecycle wraps provisional `winit 0.31.0-beta.3` with Hycel-owned config/events and opaque `WindowHandle`; it maps a documented physical-key/mouse-button subset into `hycel-input` types while keeping native window/event-loop types private.
@@ -64,7 +65,7 @@ Do not claim universal bitwise determinism across CPU architectures until tested
 
 `hycel-core` uses slot-index/generation [`EntityId`](../crates/hycel-core/src/world.rs) values: new slots are allocated in increasing index order when no reusable slot exists; otherwise the most recently despawned reusable slot is reused. Generation overflow retires a slot instead of wrapping. Live-entity iteration is in increasing slot order. Typed `ComponentStorage<T>` values are ordered by `EntityId`, validate liveness on insert/query, and can reclaim entries for despawned entities with `retain_alive`; world owners must call that on stores after despawns. This is intentionally a small set of explicit stores, not a reflective/global ECS registry.
 
-Authoritative 2D values use `SimScalar` in milli-world-units, with +X right and +Y down. `Angle` uses 65,536 clockwise units per turn. Fixed-point arithmetic truncates toward zero and reports overflow/division errors instead of saturating. Transform conversion to backend floats belongs to the renderer/presentation boundary.
+Authoritative 2D values use `SimScalar` in milli-world-units, with +X right and +Y down. `Angle` uses 65,536 clockwise units per turn. Fixed-point arithmetic truncates toward zero and reports overflow/division errors instead of saturating. `hycel-physics` explicitly converts bounded core positions, extents, velocities, and gravity to Rapier's internal floats; backend values return through a checked fixed-point quantization boundary. Renderer conversion to floating-point remains presentation-only.
 
 ## Project format and API stability
 

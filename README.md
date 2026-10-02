@@ -23,9 +23,10 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
 - `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. This is not yet integrated with the headless demo or an asset decoder; see [`docs/rendering.md`](docs/rendering.md).
 - `hycel-input`: strict versioned `input.json` keyboard/mouse bindings mapped to tick-indexed simulation input frames; see [`docs/input.md`](docs/input.md).
+- `hycel-physics`: early Rapier2D adapter with fixed-tick box bodies, bounded fixed-point conversion, and sorted contact transitions; see [`docs/adr/0003-physics-backend.md`](docs/adr/0003-physics-backend.md).
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Project and scene schema proposals: [`docs/project-format.md`](docs/project-format.md) and [`docs/scene-format.md`](docs/scene-format.md), with parser implementation in `hycel-project`; asset identity and import contracts are in [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
-- Design and release requirements: [`docs/`](docs/), including the [`gameplay capability profile`](docs/gameplay-scope.md), early [`2D rendering guide`](docs/rendering.md), and [`input binding guide`](docs/input.md).
+- Design and release requirements: [`docs/`](docs/), including the [`gameplay capability profile`](docs/gameplay-scope.md), [`physics backend decision`](docs/adr/0003-physics-backend.md), early [`2D rendering guide`](docs/rendering.md), and [`input binding guide`](docs/input.md).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
