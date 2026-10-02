@@ -2,7 +2,7 @@
 
 **A small, deterministic 2D game engine designed to be built and tested by people and AI agents.**
 
-Hycel is at the architecture-and-kernel stage. The current workspace contains a tiny platform-independent simulation core and a headless demo; it is not yet a graphical game engine. The first release is intentionally a narrow, reliable 2D engine—not a broad 3D editor.
+Hycel is pre-alpha: its workspace now includes a deterministic simulation kernel, early native window/sprite/input paths, project tools, and a headless platformer prototype. Those pieces are not yet integrated into a complete playable game, and no gameplay API or project format is stable. The first release is intentionally a narrow, reliable 2D engine—not a broad 3D editor.
 
 ## Why Hycel
 
@@ -25,7 +25,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-input`: strict versioned `input.json` keyboard/mouse bindings mapped to tick-indexed simulation input frames; see [`docs/input.md`](docs/input.md).
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Project and scene schema proposals: [`docs/project-format.md`](docs/project-format.md) and [`docs/scene-format.md`](docs/scene-format.md), with parser implementation in `hycel-project`; asset identity and import contracts are in [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
-- Design and release requirements: [`docs/`](docs/), including the early [`2D rendering guide`](docs/rendering.md) and [`input binding guide`](docs/input.md).
+- Design and release requirements: [`docs/`](docs/), including the [`gameplay capability profile`](docs/gameplay-scope.md), early [`2D rendering guide`](docs/rendering.md), and [`input binding guide`](docs/input.md).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).

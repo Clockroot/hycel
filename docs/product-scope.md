@@ -24,9 +24,11 @@ A 1.0 Hycel project should be able to produce a complete, small single-player pl
 - at least one objective/collectible and a clear success state;
 - failure/retry behavior and a basic progress/checkpoint or level-transition mechanic;
 - title/start flow, a complete playable loop, and an ending or completion screen;
-- enough distinct content to demonstrate reuse of assets/scenes, not just a single static test room.
+- enough distinct content to demonstrate reuse of assets/scenes, not just a single static test room;
+- basic sound effects and simple background music, with audio-device failure non-fatal to gameplay; and
+- persistent local single-player progress (at minimum stage/checkpoint progress) that survives process restarts.
 
-The promise is about complete game capabilities, not a fixed entity count, art budget, level count, or performance ceiling. The reference/sample game should be short and finishable, with multiple compact stages where feasible. Users may build larger games, but Hycel 1.0 does not promise to scale to arbitrary world sizes or asset counts.
+The promise is about complete game capabilities, not a fixed entity count, art budget, or performance ceiling. The reference/sample game should be short and finishable, with multiple compact stages where feasible. Its specific capability profile and exclusions are recorded in [`gameplay-scope.md`](gameplay-scope.md). Users may build larger games, but Hycel 1.0 does not promise to scale to arbitrary world sizes or asset counts.
 
 ## Out of scope for 1.0
 
