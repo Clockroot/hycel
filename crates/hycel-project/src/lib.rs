@@ -29,6 +29,8 @@ pub const MAX_DOCUMENT_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_ENTITIES_PER_SCENE: usize = 100_000;
 /// Maximum components on one entity.
 pub const MAX_COMPONENTS_PER_ENTITY: usize = 256;
+const MAX_ANIMATION_FRAMES: usize = 256;
+const MAX_ANIMATION_TICKS: u64 = 1_000_000;
 
 /// A stable, machine-readable validation diagnostic.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -816,6 +818,140 @@ const fn unit_scale() -> [i64; 2] {
     [1_000, 1_000]
 }
 
+/// Strict schema-1 animation clip authored as a project JSON source file.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AnimationClipDocument {
+    schema_version: u32,
+    name: String,
+    looping: bool,
+    frames: Vec<AnimationClipFrame>,
+}
+
+/// One texture frame and its positive fixed-tick duration.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AnimationClipFrame {
+    texture_id: String,
+    duration_ticks: u32,
+}
+
+impl AnimationClipDocument {
+    /// Parses a bounded strict animation clip with stable texture UUID references.
+    ///
+    /// # Errors
+    ///
+    /// Returns stable diagnostics for malformed, unsupported, oversized, or invalid clip data.
+    pub fn parse_json(input: &[u8], file: &str) -> Result<Self, Vec<Diagnostic>> {
+        if input.len() > MAX_DOCUMENT_BYTES {
+            return Err(vec![Diagnostic::new(
+                "HYCEL-DOCUMENT-001",
+                Some(file),
+                "$",
+                format!("document exceeds the {MAX_DOCUMENT_BYTES}-byte limit"),
+            )]);
+        }
+        let clip: Self = serde_json::from_slice(input).map_err(|error| {
+            vec![Diagnostic::new(
+                "HYCEL-ANIMATION-001",
+                Some(file),
+                "$",
+                format!("invalid JSON or unknown/duplicate field: {error}"),
+            )]
+        })?;
+        let mut diagnostics = Vec::new();
+        if clip.schema_version != 1 {
+            diagnostics.push(Diagnostic::new(
+                "HYCEL-ANIMATION-002",
+                Some(file),
+                "$.schema_version",
+                "unsupported animation clip schema version",
+            ));
+        }
+        validate_name(&clip.name, "$.name", file, &mut diagnostics);
+        if clip.frames.is_empty() || clip.frames.len() > MAX_ANIMATION_FRAMES {
+            diagnostics.push(Diagnostic::new(
+                "HYCEL-ANIMATION-003",
+                Some(file),
+                "$.frames",
+                format!("animation clip must contain 1..={MAX_ANIMATION_FRAMES} frames"),
+            ));
+        }
+        let mut total_ticks = 0_u64;
+        for (index, frame) in clip.frames.iter().enumerate() {
+            let path = format!("$.frames[{index}]");
+            if let Err(message) = validate_uuid(&frame.texture_id) {
+                diagnostics.push(Diagnostic::new(
+                    "HYCEL-ANIMATION-004",
+                    Some(file),
+                    format!("{path}.texture_id"),
+                    message,
+                ));
+            }
+            if frame.duration_ticks == 0 {
+                diagnostics.push(Diagnostic::new(
+                    "HYCEL-ANIMATION-005",
+                    Some(file),
+                    format!("{path}.duration_ticks"),
+                    "frame duration must be positive",
+                ));
+            }
+            total_ticks = total_ticks.saturating_add(u64::from(frame.duration_ticks));
+        }
+        if total_ticks > MAX_ANIMATION_TICKS {
+            diagnostics.push(Diagnostic::new(
+                "HYCEL-ANIMATION-006",
+                Some(file),
+                "$.frames",
+                format!("total animation duration exceeds {MAX_ANIMATION_TICKS} ticks"),
+            ));
+        }
+        if diagnostics.is_empty() {
+            Ok(clip)
+        } else {
+            Err(diagnostics)
+        }
+    }
+
+    /// Animation clip schema version.
+    #[must_use]
+    pub const fn schema_version(&self) -> u32 {
+        self.schema_version
+    }
+
+    /// Human-readable display name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Whether playback repeats after the final frame.
+    #[must_use]
+    pub const fn looping(&self) -> bool {
+        self.looping
+    }
+
+    /// Authored frames in playback order.
+    #[must_use]
+    pub fn frames(&self) -> &[AnimationClipFrame] {
+        &self.frames
+    }
+}
+
+impl AnimationClipFrame {
+    /// Stable UUID of the texture resource for this frame.
+    #[must_use]
+    pub fn texture_id(&self) -> &str {
+        &self.texture_id
+    }
+
+    /// Number of simulation ticks to display this frame.
+    #[must_use]
+    pub const fn duration_ticks(&self) -> u32 {
+        self.duration_ticks
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ComponentRecord {
@@ -1554,9 +1690,9 @@ fn validate_name(value: &str, path: &str, file: &str, diagnostics: &mut Vec<Diag
 #[cfg(test)]
 mod tests {
     use super::{
-        ComponentRegistry, MAX_DOCUMENT_BYTES, MAX_MANIFEST_BYTES, ProjectManifest,
-        ResourceDescriptor, ResourceRegistry, SceneDocument, validate_project_documents,
-        validate_relative_project_path,
+        AnimationClipDocument, ComponentRegistry, MAX_DOCUMENT_BYTES, MAX_MANIFEST_BYTES,
+        ProjectManifest, ResourceDescriptor, ResourceRegistry, SceneDocument,
+        validate_project_documents, validate_relative_project_path,
     };
 
     const MANIFEST: &str = include_str!("../../../examples/empty-project/hycel.toml");
@@ -1575,11 +1711,42 @@ mod tests {
     }
 
     #[test]
+    fn animation_clip_is_strict_bounded_and_uses_stable_texture_ids() {
+        let valid = br#"{"schema_version":1,"name":"Run","looping":true,"frames":[{"texture_id":"30000000-0000-4000-8000-000000000001","duration_ticks":6}]}"#;
+        let clip = AnimationClipDocument::parse_json(valid, "assets/run.animation.json").unwrap();
+        assert_eq!(clip.name(), "Run");
+        assert!(clip.looping());
+        assert_eq!(
+            clip.frames()[0].texture_id(),
+            "30000000-0000-4000-8000-000000000001"
+        );
+        assert_eq!(clip.frames()[0].duration_ticks(), 6);
+        assert!(AnimationClipDocument::parse_json(
+            br#"{"schema_version":1,"name":"Run","looping":true,"frames":[{"texture_id":"bad","duration_ticks":0}],"extra":true}"#,
+            "assets/run.animation.json",
+        )
+        .is_err());
+        assert!(
+            AnimationClipDocument::parse_json(
+                &vec![b' '; MAX_DOCUMENT_BYTES + 1],
+                "assets/large.animation.json",
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
     fn example_manifest_and_scene_parse() {
         let manifest = ProjectManifest::parse_toml(MANIFEST).unwrap();
         assert_eq!(manifest.project_name(), "My Game");
         assert_eq!(manifest.default_profile(), "development");
-        let scene = SceneDocument::parse_json(SCENE, "scenes/first-room.json").unwrap();
+        let mut components = ComponentRegistry::default();
+        components
+            .register("hycel.animation", 1, false, ["clip_id"])
+            .unwrap();
+        let scene =
+            SceneDocument::parse_json_with_registry(SCENE, "scenes/first-room.json", &components)
+                .unwrap();
         assert_eq!(scene.name(), "First Room");
         assert_eq!(scene.schema_version(), 2);
         assert_eq!(scene.entities().len(), 1);

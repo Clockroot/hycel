@@ -11,7 +11,7 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 use hycel_project::{
-    ComponentRegistry, Diagnostic, ResourceDescriptor, SceneDocument,
+    AnimationClipDocument, ComponentRegistry, Diagnostic, ResourceDescriptor, SceneDocument,
     resolve_existing_project_path, validate_relative_project_path,
 };
 use serde::{Deserialize, Serialize};
@@ -406,6 +406,7 @@ pub struct ResourceDependency {
     kind: String,
     descriptor_file: String,
     source_path: String,
+    resource_ids: Vec<String>,
 }
 
 /// A scene's direct resource dependencies, in lexical UUID order.
@@ -432,7 +433,26 @@ impl AssetDependencyReport {
         scenes: &[(String, SceneDocument)],
         resources: &[(String, ResourceDescriptor)],
         registry: &ComponentRegistry,
+        animation_clips: &[(String, AnimationClipDocument)],
     ) -> Result<Self, AssetError> {
+        let resource_map = Self::build_resource_dependencies(resources, animation_clips)?;
+        let resource_kinds = resource_map
+            .iter()
+            .map(|(id, resource)| (id.clone(), resource.kind.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let scene_map =
+            Self::build_scene_dependencies(scenes, registry, &resource_map, &resource_kinds)?;
+        Ok(Self {
+            schema_version: 2,
+            resources: resource_map,
+            scenes: scene_map,
+        })
+    }
+
+    fn build_resource_dependencies(
+        resources: &[(String, ResourceDescriptor)],
+        animation_clips: &[(String, AnimationClipDocument)],
+    ) -> Result<BTreeMap<String, ResourceDependency>, AssetError> {
         let mut resource_map = BTreeMap::new();
         for (descriptor_file, resource) in resources {
             validate_relative_project_path(descriptor_file)
@@ -442,6 +462,7 @@ impl AssetDependencyReport {
                 kind: resource.kind().to_owned(),
                 descriptor_file: descriptor_file.clone(),
                 source_path: resource.source().to_owned(),
+                resource_ids: Vec::new(),
             };
             if resource_map
                 .insert(resource.id().to_owned(), entry)
@@ -450,12 +471,81 @@ impl AssetDependencyReport {
                 return Err(AssetError::DuplicateResource(resource.id().to_owned()));
             }
         }
+        let kinds = resource_map
+            .iter()
+            .map(|(id, resource)| (id.clone(), resource.kind.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let mut clips = BTreeMap::new();
+        for (resource_id, clip) in animation_clips {
+            if clips.insert(resource_id.as_str(), clip).is_some() {
+                return Err(AssetError::DuplicateAnimationClip(resource_id.clone()));
+            }
+        }
+        for (resource_id, entry) in &mut resource_map {
+            if entry.kind != "animation" {
+                continue;
+            }
+            let Some(clip) = clips.remove(resource_id.as_str()) else {
+                return Err(AssetError::MissingAnimationClip(resource_id.clone()));
+            };
+            let mut dependencies = std::collections::BTreeSet::new();
+            for frame in clip.frames() {
+                let texture_id = frame.texture_id();
+                let Some(texture_kind) = kinds.get(texture_id) else {
+                    return Err(AssetError::MissingResourceDependency {
+                        source_id: resource_id.clone(),
+                        resource_id: texture_id.to_owned(),
+                    });
+                };
+                if texture_kind != "texture" {
+                    return Err(AssetError::WrongResourceKind {
+                        source_id: resource_id.clone(),
+                        resource_id: texture_id.to_owned(),
+                        expected_kind: "texture",
+                    });
+                }
+                dependencies.insert(texture_id.to_owned());
+            }
+            entry.resource_ids = dependencies.into_iter().collect();
+        }
+        if let Some((resource_id, _)) = clips.into_iter().next() {
+            return Err(AssetError::UnexpectedAnimationClip(resource_id.to_owned()));
+        }
+        Ok(resource_map)
+    }
+
+    fn build_scene_dependencies(
+        scenes: &[(String, SceneDocument)],
+        registry: &ComponentRegistry,
+        resources: &BTreeMap<String, ResourceDependency>,
+        resource_kinds: &BTreeMap<String, String>,
+    ) -> Result<BTreeMap<String, SceneDependency>, AssetError> {
         let mut scene_map = BTreeMap::new();
         for (file, scene) in scenes {
             validate_relative_project_path(file).map_err(AssetError::InvalidProjectPath)?;
             let resource_ids = scene.referenced_resource_ids(registry);
+            for entity in scene.entities() {
+                for component in entity.components() {
+                    if component.component_type() == "hycel.animation" {
+                        if let Some(clip_id) =
+                            component.data().get("clip_id").and_then(Value::as_str)
+                        {
+                            if resource_kinds
+                                .get(clip_id)
+                                .is_some_and(|kind| kind != "animation")
+                            {
+                                return Err(AssetError::WrongResourceKind {
+                                    source_id: scene.id().to_owned(),
+                                    resource_id: clip_id.to_owned(),
+                                    expected_kind: "animation",
+                                });
+                            }
+                        }
+                    }
+                }
+            }
             for resource_id in &resource_ids {
-                if !resource_map.contains_key(resource_id) {
+                if !resources.contains_key(resource_id) {
                     return Err(AssetError::MissingResource {
                         scene_id: scene.id().to_owned(),
                         resource_id: resource_id.clone(),
@@ -471,11 +561,7 @@ impl AssetDependencyReport {
                 return Err(AssetError::DuplicateScene(scene.id().to_owned()));
             }
         }
-        Ok(Self {
-            schema_version: 1,
-            resources: resource_map,
-            scenes: scene_map,
-        })
+        Ok(scene_map)
     }
 
     /// Dependency report schema version.
@@ -529,6 +615,12 @@ impl ResourceDependency {
     #[must_use]
     pub fn source_path(&self) -> &str {
         &self.source_path
+    }
+
+    /// Direct resource dependencies, such as texture resources used by an animation clip.
+    #[must_use]
+    pub fn resource_ids(&self) -> &[String] {
+        &self.resource_ids
     }
 }
 
@@ -586,6 +678,23 @@ pub enum AssetError {
         scene_id: String,
         resource_id: String,
     },
+    /// An animation resource descriptor has no parsed clip source.
+    MissingAnimationClip(String),
+    /// A parsed animation clip has no matching animation resource descriptor.
+    UnexpectedAnimationClip(String),
+    /// More than one parsed clip is associated with the same resource.
+    DuplicateAnimationClip(String),
+    /// A clip or scene references a resource UUID without a descriptor.
+    MissingResourceDependency {
+        source_id: String,
+        resource_id: String,
+    },
+    /// A resource edge targets a descriptor with an incompatible kind.
+    WrongResourceKind {
+        source_id: String,
+        resource_id: String,
+        expected_kind: &'static str,
+    },
 }
 
 impl fmt::Display for AssetError {
@@ -629,6 +738,31 @@ impl fmt::Display for AssetError {
             } => write!(
                 f,
                 "scene {scene_id} references missing resource {resource_id}"
+            ),
+            Self::MissingAnimationClip(id) => {
+                write!(f, "animation resource {id} has no parsed clip")
+            }
+            Self::UnexpectedAnimationClip(id) => write!(
+                f,
+                "animation clip {id} has no animation resource descriptor"
+            ),
+            Self::DuplicateAnimationClip(id) => {
+                write!(f, "multiple animation clips use resource {id}")
+            }
+            Self::MissingResourceDependency {
+                source_id,
+                resource_id,
+            } => write!(
+                f,
+                "resource {source_id} references missing resource {resource_id}"
+            ),
+            Self::WrongResourceKind {
+                source_id,
+                resource_id,
+                expected_kind,
+            } => write!(
+                f,
+                "resource {source_id} expects {resource_id} to be kind {expected_kind}"
             ),
         }
     }
@@ -722,7 +856,10 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
 
-    use hycel_project::{ComponentRegistry, ResourceDescriptor, ResourceRegistry, SceneDocument};
+    use hycel_project::{
+        AnimationClipDocument, ComponentRegistry, ResourceDescriptor, ResourceRegistry,
+        SceneDocument,
+    };
     use serde_json::json;
     use sha2::Digest;
 
@@ -908,9 +1045,10 @@ mod tests {
             &[("scenes/room.json".to_owned(), scene)],
             &[("assets/player.png.hycel.json".to_owned(), resource)],
             &registry,
+            &[],
         )
         .unwrap();
-        assert_eq!(report.schema_version(), 1);
+        assert_eq!(report.schema_version(), 2);
         assert_eq!(
             report
                 .resources()
@@ -932,6 +1070,112 @@ mod tests {
     }
 
     #[test]
+    fn dependency_report_connects_scenes_clips_and_texture_resources() {
+        let texture_id = "30000000-0000-4000-8000-000000000001";
+        let clip_id = "30000000-0000-4000-8000-000000000002";
+        let mut component_registry = ComponentRegistry::default();
+        component_registry
+            .register("hycel.animation", 1, false, ["clip_id"])
+            .unwrap();
+        component_registry
+            .mark_resource_reference("hycel.animation", "clip_id")
+            .unwrap();
+        let scene_json = format!(
+            r#"{{"schema_version":2,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{{"id":"20000000-0000-4000-8000-000000000001","name":"Runner","tags":[],"components":[{{"type":"hycel.animation","schema_version":1,"data":{{"clip_id":"{clip_id}"}}}}]}}]}}"#
+        );
+        let scene = SceneDocument::parse_json_with_registry(
+            scene_json.as_bytes(),
+            "scenes/room.json",
+            &component_registry,
+        )
+        .unwrap();
+        let mut resource_registry = ResourceRegistry::default();
+        resource_registry
+            .register("texture", std::iter::empty::<&str>())
+            .unwrap();
+        resource_registry
+            .register("animation", std::iter::empty::<&str>())
+            .unwrap();
+        let texture = ResourceDescriptor::parse_json_with_registry(
+            format!(r#"{{"schema_version":1,"id":"{texture_id}","kind":"texture","source":"assets/runner.png","import":{{}}}}"#).as_bytes(),
+            "assets/runner.png.hycel.json",
+            &resource_registry,
+        )
+        .unwrap();
+        let animation = ResourceDescriptor::parse_json_with_registry(
+            format!(r#"{{"schema_version":1,"id":"{clip_id}","kind":"animation","source":"assets/run.animation.json","import":{{}}}}"#).as_bytes(),
+            "assets/run.animation.hycel.json",
+            &resource_registry,
+        )
+        .unwrap();
+        let clip = AnimationClipDocument::parse_json(
+            format!(r#"{{"schema_version":1,"name":"Run","looping":true,"frames":[{{"texture_id":"{texture_id}","duration_ticks":4}}]}}"#).as_bytes(),
+            "assets/run.animation.json",
+        )
+        .unwrap();
+        let report = AssetDependencyReport::build(
+            &[("scenes/room.json".to_owned(), scene)],
+            &[
+                ("assets/runner.png.hycel.json".to_owned(), texture),
+                ("assets/run.animation.hycel.json".to_owned(), animation),
+            ],
+            &component_registry,
+            &[(clip_id.to_owned(), clip)],
+        )
+        .unwrap();
+        assert_eq!(
+            report.scenes().values().next().unwrap().resource_ids(),
+            &[clip_id]
+        );
+        assert_eq!(report.resources()[clip_id].resource_ids(), &[texture_id]);
+    }
+
+    #[test]
+    fn dependency_report_rejects_animation_components_pointing_at_textures() {
+        let texture_id = "30000000-0000-4000-8000-000000000001";
+        let mut component_registry = ComponentRegistry::default();
+        component_registry
+            .register("hycel.animation", 1, false, ["clip_id"])
+            .unwrap();
+        component_registry
+            .mark_resource_reference("hycel.animation", "clip_id")
+            .unwrap();
+        let scene = SceneDocument::parse_json_with_registry(
+            format!(
+                r#"{{"schema_version":2,"id":"10000000-0000-4000-8000-000000000001","name":"Room","entities":[{{"id":"20000000-0000-4000-8000-000000000001","name":"Player","tags":[],"components":[{{"type":"hycel.animation","schema_version":1,"data":{{"clip_id":"{texture_id}"}}}}]}}]}}"#
+            )
+            .as_bytes(),
+            "scenes/room.json",
+            &component_registry,
+        )
+        .unwrap();
+        let mut resource_registry = ResourceRegistry::default();
+        resource_registry
+            .register("texture", std::iter::empty::<&str>())
+            .unwrap();
+        let texture = ResourceDescriptor::parse_json_with_registry(
+            format!(r#"{{"schema_version":1,"id":"{texture_id}","kind":"texture","source":"assets/player.png","import":{{}}}}"#).as_bytes(),
+            "assets/player.png.hycel.json",
+            &resource_registry,
+        )
+        .unwrap();
+        let error = AssetDependencyReport::build(
+            &[("scenes/room.json".to_owned(), scene)],
+            &[("assets/player.png.hycel.json".to_owned(), texture)],
+            &component_registry,
+            &[],
+        )
+        .unwrap_err();
+        assert!(matches!(
+            error,
+            AssetError::WrongResourceKind {
+                expected_kind: "animation",
+                ..
+            }
+        ));
+    }
+
+    #[test]
     fn dependency_report_rejects_dangling_resource_ids() {
         let mut registry = ComponentRegistry::default();
         registry
@@ -943,7 +1187,12 @@ mod tests {
         let scene =
             SceneDocument::parse_json_with_registry(SCENE, "scenes/room.json", &registry).unwrap();
         assert!(matches!(
-            AssetDependencyReport::build(&[("scenes/room.json".to_owned(), scene)], &[], &registry),
+            AssetDependencyReport::build(
+                &[("scenes/room.json".to_owned(), scene)],
+                &[],
+                &registry,
+                &[]
+            ),
             Err(AssetError::MissingResource { .. })
         ));
     }

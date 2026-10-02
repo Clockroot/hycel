@@ -75,9 +75,10 @@ Each persisted envelope has an independent version and unsupported versions fail
 | Replay JSON | 1 | none supported | Separate deterministic replay format; compatibility is documented in [ADR 0002](adr/0002-replay-format-and-state-hash.md). Unsupported versions fail closed. |
 | Component payload | Component-registered | Per component | The component registry accepts only the registered type/version; payload migrations are not yet implemented. |
 | Generated import record | 1 | none supported | Strict, fingerprint-verified metadata under `.hycel/`; see [`asset-pipeline.md`](asset-pipeline.md). |
-| Asset dependency report | 1 | none supported | Deterministic derived snapshot; direct scene-to-resource dependencies only, not authored source of truth. |
+| Animation clip JSON | 1 | none supported | Strict bounded authored clip resource; frame durations use simulation ticks and frame textures use stable resource UUIDs. |
+| Asset dependency report | 2 | N/A (derived; regenerate with `inspect`) | Deterministic derived snapshot with scene→resource and animation→texture edges; not authored source of truth. |
 
-Format versions are not interchangeable: changing a scene does not change the manifest, resource, replay, component, or generated import-record versions. A migration applies only to the named file format and rejects unknown fields rather than dropping them. Current schema design/strict rejection is defined above, in [`scene-format.md`](scene-format.md), and in [`asset-pipeline.md`](asset-pipeline.md).
+Format versions are not interchangeable: changing a scene does not change the manifest, resource, animation clip, replay, component, or generated import-record versions. A migration applies only to the named file format and rejects unknown fields rather than dropping them. Current schema design/strict rejection is defined above, in [`scene-format.md`](scene-format.md), and in [`asset-pipeline.md`](asset-pipeline.md).
 
 ## Generated and ignored content
 

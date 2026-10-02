@@ -13,7 +13,13 @@
         "rotation_units": 0,
         "scale_milli": [1000, 1000]
       },
-      "components": []
+      "components": [
+        {
+          "type": "hycel.animation",
+          "schema_version": 1,
+          "data": { "clip_id": "30000000-0000-4000-8000-000000000002" }
+        }
+      ]
     }
   ]
 }

@@ -17,9 +17,9 @@ use hycel_input::{
     AxisBinding, ButtonBinding, FocusLossBehavior, InputBindings, InputControl, KeyCode,
 };
 use hycel_project::{
-    ComponentRegistry, Diagnostic, MAX_DOCUMENT_BYTES, ProjectManifest, ResourceDescriptor,
-    ResourceRegistry, SceneDocument, resolve_existing_project_path, validate_project_documents,
-    validate_project_root,
+    AnimationClipDocument, ComponentRegistry, Diagnostic, MAX_DOCUMENT_BYTES, ProjectManifest,
+    ResourceDescriptor, ResourceRegistry, SceneDocument, resolve_existing_project_path,
+    validate_project_documents, validate_project_root,
 };
 use serde::Serialize;
 
@@ -387,6 +387,7 @@ struct LoadedProject {
 type ProjectDocuments = (
     Vec<(String, SceneDocument)>,
     Vec<(String, ResourceDescriptor)>,
+    Vec<(String, AnimationClipDocument)>,
 );
 
 fn inspect_project(path: &Path, json: bool) -> CliOutput {
@@ -478,23 +479,28 @@ fn load_project(path: &Path) -> Result<LoadedProject, Vec<OutputDiagnostic>> {
     );
     diagnostics.extend(directory_scan.diagnostics);
 
-    let component_registry = ComponentRegistry::default();
-    let (scenes, resources) = parse_project_documents(
+    let mut component_registry = ComponentRegistry::default();
+    component_registry
+        .register("hycel.animation", 1, false, ["clip_id"])
+        .and_then(|()| component_registry.mark_resource_reference("hycel.animation", "clip_id"))
+        .map_err(|error| vec![OutputDiagnostic::from(error)])?;
+    let (scenes, resources, animation_clips) = parse_project_documents(
         &root,
         scene_files,
         resource_files,
         &component_registry,
         diagnostics,
     )?;
-    let dependencies = AssetDependencyReport::build(&scenes, &resources, &component_registry)
-        .map_err(|error| {
-            vec![cli_diagnostic(
-                "HYCEL-CLI-102",
-                None,
-                "dependencies",
-                error.to_string(),
-            )]
-        })?;
+    let dependencies =
+        AssetDependencyReport::build(&scenes, &resources, &component_registry, &animation_clips)
+            .map_err(|error| {
+                vec![cli_diagnostic(
+                    "HYCEL-CLI-102",
+                    None,
+                    "dependencies",
+                    error.to_string(),
+                )]
+            })?;
     Ok(LoadedProject {
         manifest,
         scenes,
@@ -519,7 +525,11 @@ fn parse_project_documents(
         ));
         return Err(diagnostics);
     }
-    let resource_registry = ResourceRegistry::default();
+    let mut resource_registry = ResourceRegistry::default();
+    resource_registry
+        .register("texture", std::iter::empty::<&str>())
+        .and_then(|()| resource_registry.register("animation", std::iter::empty::<&str>()))
+        .map_err(|error| vec![OutputDiagnostic::from(error)])?;
     let mut total_bytes = 0_usize;
     let mut scenes = Vec::new();
     for file in scene_files {
@@ -561,11 +571,30 @@ fn parse_project_documents(
             }
         }
     }
+    let mut animation_clips = Vec::new();
+    for (_, resource) in &resources {
+        if resource.kind() != "animation" {
+            continue;
+        }
+        match read_project_document(root, resource.source(), &mut total_bytes) {
+            Ok(bytes) => match AnimationClipDocument::parse_json(&bytes, resource.source()) {
+                Ok(clip) => animation_clips.push((resource.id().to_owned(), clip)),
+                Err(errors) => diagnostics.extend(errors.into_iter().map(OutputDiagnostic::from)),
+            },
+            Err(error) => {
+                let aggregate_limit = error.code == "HYCEL-CLI-112";
+                diagnostics.push(error);
+                if aggregate_limit {
+                    return Err(diagnostics);
+                }
+            }
+        }
+    }
     if let Err(errors) = validate_project_documents(&scenes, &resources, component_registry) {
         diagnostics.extend(errors.into_iter().map(OutputDiagnostic::from));
     }
     if diagnostics.is_empty() {
-        Ok((scenes, resources))
+        Ok((scenes, resources, animation_clips))
     } else {
         Err(diagnostics)
     }
@@ -1286,6 +1315,27 @@ mod tests {
     }
 
     #[test]
+    fn example_project_validates_and_reports_animation_dependencies() {
+        let project =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/empty-project");
+        let checked = execute(args(["check", project.to_str().unwrap(), "--json"]));
+        assert_eq!(checked.exit_code, 0, "{}", checked.stdout);
+        let inspected = execute(args(["inspect", project.to_str().unwrap(), "--json"]));
+        assert_eq!(inspected.exit_code, 0, "{}", inspected.stdout);
+        let envelope: Value = serde_json::from_str(&inspected.stdout).unwrap();
+        let resources = envelope["result"]["dependencies"]["resources"]
+            .as_object()
+            .unwrap();
+        assert_eq!(resources.len(), 2);
+        let animation = &resources["30000000-0000-4000-8000-000000000002"];
+        assert_eq!(animation["kind"], "animation");
+        assert_eq!(animation["resource_ids"].as_array().unwrap().len(), 1);
+        let scene =
+            &envelope["result"]["dependencies"]["scenes"]["10000000-0000-4000-8000-000000000001"];
+        assert_eq!(scene["resource_ids"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
     fn check_reports_invalid_input_bindings_with_stable_diagnostics() {
         let directory = test_directory("cli-invalid-input");
         let project = directory.join("project");
@@ -1359,7 +1409,7 @@ mod tests {
         assert_eq!(created.exit_code, 0, "{}", created.stderr);
         fs::write(
             project.join("assets/player.png.hycel.json"),
-            br#"{"schema_version":1,"id":"30000000-0000-4000-8000-000000000001","kind":"texture","source":"assets/player.png","import":{}}"#,
+            br#"{"schema_version":1,"id":"30000000-0000-4000-8000-000000000001","kind":"audio","source":"assets/player.png","import":{}}"#,
         )
         .unwrap();
 

@@ -18,7 +18,8 @@ Game projects should be inspectable and testable without clicking through an edi
 
 - `hycel-core`: fixed-rate integer simulation clock and deterministic world/schedule/replay primitives; no platform APIs.
 - `hycel-project`: bounded TOML/JSON manifest and scene/resource parsing with strict fields, path checks, and stable diagnostics; project formats are still experimental.
-- `hycel-assets`: bounded source hashing, versioned import fingerprints/records, deterministic cache/reimport decisions, and direct scene/resource dependency reports; format decoders and importer execution are not implemented.
+- `hycel-assets`: bounded source hashing, versioned import fingerprints/records, deterministic cache/reimport decisions, and scene/resource dependency reports including animation-frame texture edges; format decoders and importer execution are not implemented.
+- `hycel-animation`: strict project-authored clip resources, contiguous tick-driven playback, deterministic loop/completion events, and scene transitions applied at explicit tick boundaries; see [`docs/scene-format.md`](docs/scene-format.md).
 - `hycel-cli`: `hycel new`, `check`, and read-only `inspect` foundations with versioned JSON envelopes and stable exit codes.
 - `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
 - `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. This is not yet integrated with the headless demo or an asset decoder; see [`docs/rendering.md`](docs/rendering.md).
