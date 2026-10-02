@@ -1070,10 +1070,10 @@ mod tests {
             let events = tracker.events_for_frame(&frame, &bindings).unwrap();
             recorded.push((frame, events));
         }
-        assert!(recorded[0].1.is_empty());
+        assert_eq!(recorded[0].1, Vec::<ButtonActionEvent>::new());
         assert_eq!(recorded[1].1[0].action_name(), "jump");
         assert_eq!(recorded[1].1[0].kind(), ButtonActionEventKind::Pressed);
-        assert!(recorded[2].1.is_empty());
+        assert_eq!(recorded[2].1, Vec::<ButtonActionEvent>::new());
         assert_eq!(recorded[3].1[0].kind(), ButtonActionEventKind::Released);
 
         let mut replay_tracker = ActionEventTracker::new();
