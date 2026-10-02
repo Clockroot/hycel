@@ -482,7 +482,7 @@ mod tests {
     fn debug_text_builds_screen_space_glyphs_and_rejects_invalid_scale() {
         let label = DebugText::new([10, 12], "A1");
         let geometry = prepare_scene(&[], &[label]).unwrap();
-        assert!(!geometry.overlay_vertices.is_empty());
+        assert!(geometry.overlay_vertices.len() >= 6);
         assert!(
             geometry
                 .overlay_vertices
