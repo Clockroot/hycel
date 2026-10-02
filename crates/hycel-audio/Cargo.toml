@@ -1,0 +1,13 @@
+[package]
+name = "hycel-audio"
+description = "Bounded non-authoritative audio playback for Hycel games"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+kira.workspace = true
+
+[lints]
+workspace = true

@@ -30,6 +30,21 @@ allow = [
 ]
 confidence-threshold = 0.93
 unused-allowed-license = "allow"
+# User-approved exception for Kira's optional Symphonia audio decoders. Keep scoped to
+# Symphonia crates; review MPL-2.0 source-file obligations before redistributing binaries.
+exceptions = [
+    { crate = "symphonia", allow = ["MPL-2.0"] },
+    { crate = "symphonia-bundle-flac", allow = ["MPL-2.0"] },
+    { crate = "symphonia-bundle-mp3", allow = ["MPL-2.0"] },
+    { crate = "symphonia-codec-pcm", allow = ["MPL-2.0"] },
+    { crate = "symphonia-codec-vorbis", allow = ["MPL-2.0"] },
+    { crate = "symphonia-common", allow = ["MPL-2.0"] },
+    { crate = "symphonia-core", allow = ["MPL-2.0"] },
+    { crate = "symphonia-format-ogg", allow = ["MPL-2.0"] },
+    { crate = "symphonia-format-riff", allow = ["MPL-2.0"] },
+    { crate = "symphonia-metadata", allow = ["MPL-2.0"] },
+    { crate = "triple_buffer", allow = ["MPL-2.0"] },
+]
 
 [licenses.private]
 ignore = false

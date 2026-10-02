@@ -1,6 +1,6 @@
 # Asset identity and dependency tracking (Phases 3.5 and 5.4)
 
-This document specifies the asset-pipeline contracts implemented by `hycel-assets`. It establishes source hashing, per-resource import provenance, cache/reimport decisions, and deterministic scene/resource dependency reports. Phase 5.4 adds authored animation clips as reusable versioned resources and tracks their texture dependencies. It does not yet decode image/audio formats or run native import tools.
+This document specifies the asset-pipeline contracts implemented by `hycel-assets`. It establishes source hashing, per-resource import provenance, cache/reimport decisions, and deterministic scene/resource dependency reports. Phase 5.4 adds authored animation clips as reusable versioned resources and tracks their texture dependencies. The asset pipeline does not yet decode image formats, integrate audio decoding as a resource importer, or run native import tools; `hycel-audio` independently provides bounded Kira playback for encoded audio bytes.
 
 ## Separate identity layers
 

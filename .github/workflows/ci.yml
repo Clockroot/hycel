@@ -47,6 +47,9 @@ jobs:
         with:
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
+      - name: Install Linux audio development headers
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Verify native runner architecture
         shell: bash
         run: |
@@ -71,6 +74,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.87.0
+      - name: Install ALSA development headers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Test workspace with declared MSRV 1.87.0
         run: cargo test --workspace --all-targets --locked
       - name: Test winit beta spike with declared MSRV
@@ -209,6 +214,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install ALSA development headers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - name: Install and verify exact MSRV
         run: rustup toolchain install 1.87.0 --profile minimal --component clippy --component rustfmt
       - name: Record runner and cold build/test timings
