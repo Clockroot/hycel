@@ -6,6 +6,7 @@ members = [
     "crates/hycel-core",
     "crates/hycel-project",
     "crates/hycel-platform",
+    "crates/hycel-render",
     "crates/hycel-demo",
 ]
 
@@ -24,6 +25,8 @@ sha2 = "0.10.9"
 semver = "1.0.27"
 toml = "0.9.7"
 winit = { version = "=0.31.0-beta.3", default-features = false, features = ["x11", "wayland", "wayland-dlopen"] }
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "parking_lot", "dx12", "metal", "vulkan", "wgsl"] }
+pollster = "=1.0.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

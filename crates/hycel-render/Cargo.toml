@@ -1,0 +1,15 @@
+[package]
+name = "hycel-render"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+hycel-platform = { path = "../hycel-platform", version = "0.1.0" }
+pollster.workspace = true
+wgpu.workspace = true
+
+[lints]
+workspace = true

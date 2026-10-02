@@ -162,6 +162,15 @@ jobs:
           else
             cargo run -p hycel-platform --example window_smoke --release --locked
           fi
+      - name: Run Hycel 2D render smoke
+        if: matrix.smoke
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run -a cargo run -p hycel-render --example render_smoke --release --locked
+          else
+            cargo run -p hycel-render --example render_smoke --release --locked
+          fi
 
   dependency-audit:
     name: Dependency, license, and source audit
