@@ -31,7 +31,7 @@ This adapter is not a stable 1.0 API. It does not yet provide arbitrary shapes, 
 
 ## Validation gates
 
-Phase 5.2 tests cover contiguous ticks, invalid tick rates/geometry/ranges/body kinds, high-speed CCD against a wall, body removal/contact transitions, stable simultaneous-contact order, and same-process clone-and-step parity. The full workspace stable/MSRV tests, release build, strict Clippy, docs, dependency audit, and local six-target compile checks have passed. Hosted six-target native CI remains required before this phase is complete. Hardware support and cross-platform determinism claims remain separate gates.
+Phase 5.2 tests cover contiguous ticks, invalid tick rates/geometry/ranges/body kinds, high-speed CCD against a wall, body removal/contact transitions, stable simultaneous-contact order, and same-process clone-and-step parity. The full workspace stable/MSRV tests, release build, strict Clippy, docs, dependency audit, and local six-target compile checks have passed. The complete hosted six-target native CI passed in [run 36964450531](https://github.com/Clockroot/hycel/actions/runs/36964450531). Hardware support and cross-platform determinism claims remain separate gates.
 
 ## References
 
