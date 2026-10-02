@@ -50,6 +50,6 @@ This is a feasibility and architecture decision, not a benchmark, legal certific
 ## Consequences
 
 - Phase 4 may add renderer/window dependencies only to implementation crates; `hycel-core` remains graphics/window independent.
-- Phase 4.2 implements lifecycle/windowing behind Hycel-owned interfaces using the provisional API. The current platform API follows OS-suggested size changes and deliberately does not expose winit's scale-change size writer; custom scale-time size requests are not part of the initial contract. Phase 4.3 must draw a textured sprite and test shader/device-loss/resize errors.
+- Phase 4.2 is implemented in `hycel-platform`; it follows OS-suggested size changes and deliberately does not expose winit's scale-change size writer. Custom scale-time size requests are not part of the initial contract. All six native builds/tests and representative native window/redraw smokes pass in [CI run 36948024650](https://github.com/aaf2tbz/hycel/actions/runs/36948024650). Phase 4.3 must draw a textured sprite and test shader/device-loss/resize errors.
 - Before 1.0, replace the beta with a stable winit release and rerun all target, runtime, DPI, dependency/license, minimum-OS, and packaging checks. A clean compile alone is insufficient.
 - Renderer decisions must be revisited if the backend, MSRV, data boundary, target matrix, or public resize contract changes.
