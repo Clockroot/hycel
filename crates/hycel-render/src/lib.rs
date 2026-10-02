@@ -1,8 +1,9 @@
 //! A minimal safe 2D presentation backend using `wgpu`.
 //!
-//! The crate owns native graphics objects and exposes only Hycel types. It draws a camera-aware
-//! colored quad and a sampled texture to a [`hycel_platform::WindowHandle`] surface. This is an
-//! initial rendering slice, not yet a complete sprite/resource pipeline.
+//! The crate owns native graphics objects and exposes only Hycel types. It draws camera-projected
+//! textured sprites and a screen-space debug overlay to a [`hycel_platform::WindowHandle`] surface.
+//! This initial rendering slice accepts decoded RGBA data; asset decoding and device recovery remain
+//! outside its current scope.
 
 use std::{
     error::Error,
@@ -12,6 +13,10 @@ use std::{
 };
 
 use hycel_platform::{SurfaceSize, WindowHandle};
+
+mod scene;
+pub use scene::{DebugText, RgbaImage, Sprite, TextureId};
+use scene::{SceneGeometry, Vertex, prepare_scene};
 use wgpu::util::DeviceExt;
 use wgpu::{
     Backends, BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout,
@@ -29,13 +34,11 @@ use wgpu::{
 };
 
 const SCENE_SHADER: &str = include_str!("shaders/scene.wgsl");
-const VERTICES: [Vertex; 12] = scene_vertices();
-const VERTEX_COUNT: u32 = 12;
 const TEXTURE_PIXELS: [u8; 16] = [
     255, 72, 72, 255, 64, 128, 255, 255, 255, 220, 48, 255, 64, 220, 128, 255,
 ];
 
-/// A simple camera in presentation world units. Positive zoom magnifies the scene.
+/// A simple camera in presentation world units (+X right, +Y down). Positive zoom magnifies the scene.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera2D {
     /// World-space position at the viewport center.
@@ -81,6 +84,12 @@ pub enum RenderErrorKind {
     DeviceFailure,
     /// A camera contains non-finite coordinates or non-positive zoom.
     InvalidCamera,
+    /// Texture data has invalid dimensions or is too large.
+    InvalidTextureData,
+    /// A sprite refers to a texture not created by this renderer.
+    UnknownTexture,
+    /// Scene geometry or debug overlay input is invalid or exceeds limits.
+    InvalidScene,
 }
 
 /// Renderer failure with a stable category and a human-readable diagnostic.
@@ -128,16 +137,19 @@ struct SurfaceDevice {
 
 struct SceneResources {
     pipeline: RenderPipeline,
-    vertex_buffer: Buffer,
-    view_buffer: Buffer,
-    bind_group: BindGroup,
-    bind_group_layout: BindGroupLayout,
-    texture: Texture,
-    texture_view: TextureView,
-    sampler: Sampler,
+    camera_buffer: Buffer,
+    texture_bind_group_layout: BindGroupLayout,
+    textures: Vec<GpuTexture>,
 }
 
-/// Owns the GPU surface, device, scene pipeline, and a small demonstration texture.
+struct GpuTexture {
+    _texture: Texture,
+    _view: TextureView,
+    _sampler: Sampler,
+    bind_group: BindGroup,
+}
+
+/// Owns the GPU surface, device, scene pipeline, and renderer-local texture registry.
 ///
 /// It deliberately has no reference to or mutation access over the authoritative simulation.
 pub struct Renderer {
@@ -148,13 +160,10 @@ pub struct Renderer {
     config: SurfaceConfiguration,
     suspended: bool,
     pipeline: RenderPipeline,
-    vertex_buffer: Buffer,
-    view_buffer: Buffer,
-    bind_group: BindGroup,
-    _bind_group_layout: BindGroupLayout,
-    _texture: Texture,
-    _texture_view: TextureView,
-    _sampler: Sampler,
+    camera_buffer: Buffer,
+    texture_bind_group_layout: BindGroupLayout,
+    textures: Vec<GpuTexture>,
+    texture_bytes: usize,
     async_error: Arc<Mutex<Option<RenderError>>>,
 }
 
@@ -192,13 +201,10 @@ impl Renderer {
             config,
             suspended,
             pipeline: resources.pipeline,
-            vertex_buffer: resources.vertex_buffer,
-            view_buffer: resources.view_buffer,
-            bind_group: resources.bind_group,
-            _bind_group_layout: resources.bind_group_layout,
-            _texture: resources.texture,
-            _texture_view: resources.texture_view,
-            _sampler: resources.sampler,
+            camera_buffer: resources.camera_buffer,
+            texture_bind_group_layout: resources.texture_bind_group_layout,
+            textures: resources.textures,
+            texture_bytes: 20,
             async_error,
         })
     }
@@ -230,15 +236,117 @@ impl Renderer {
     /// Returns a typed [`RenderError`] for invalid camera state, device failure, or a surface
     /// validation failure. Timeout/occlusion and reconfiguration remain non-fatal outcomes.
     pub fn render(&mut self, camera: Camera2D) -> Result<FrameOutcome, RenderError> {
+        let sprites = [
+            Sprite {
+                tint: [1.0, 0.48, 0.12, 1.0],
+                ..Sprite::new(TextureId::WHITE, [-0.52, 0.0], [0.6, 1.1])
+            },
+            Sprite::new(TextureId(1), [0.52, 0.0], [0.6, 1.1]),
+        ];
+        self.render_scene(camera, &sprites, &[])
+    }
+
+    /// Uploads decoded RGBA pixels and returns a renderer-local texture identifier.
+    ///
+    /// Image file parsing/decoding is deliberately outside the renderer. Each image is bounded
+    /// to 64 MiB, texture dimensions are checked against the device, and the renderer allows at
+    /// most 256 MiB of uploaded image data.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed error for texture limits, device validation failures, or exhausted IDs.
+    pub fn load_texture(&mut self, image: RgbaImage) -> Result<TextureId, RenderError> {
+        const MAX_TEXTURES: usize = 256;
+        const MAX_TOTAL_TEXTURE_BYTES: usize = 256 * 1024 * 1024;
+        if image.width() > self.device.limits().max_texture_dimension_2d
+            || image.height() > self.device.limits().max_texture_dimension_2d
+            || self.textures.len() >= MAX_TEXTURES
+            || self
+                .texture_bytes
+                .checked_add(image.byte_len())
+                .is_none_or(|bytes| bytes > MAX_TOTAL_TEXTURE_BYTES)
+        {
+            return Err(RenderError::new(
+                RenderErrorKind::InvalidTextureData,
+                "image exceeds GPU dimension or renderer texture-memory limits",
+            ));
+        }
+        let id = TextureId(u32::try_from(self.textures.len()).map_err(|_| {
+            RenderError::new(
+                RenderErrorKind::InvalidTextureData,
+                "texture ID space exhausted",
+            )
+        })?);
+        let image_bytes = image.byte_len();
+        let scope = self.device.push_error_scope(ErrorFilter::Validation);
+        let resource = match create_texture_resource(
+            &self.device,
+            &self.queue,
+            &self.texture_bind_group_layout,
+            &self.camera_buffer,
+            image,
+            "hycel uploaded RGBA texture",
+        ) {
+            Ok(resource) => resource,
+            Err(error) => {
+                let _ = pollster::block_on(scope.pop());
+                return Err(error);
+            }
+        };
+        if let Some(error) = pollster::block_on(scope.pop()) {
+            return Err(RenderError::new(
+                RenderErrorKind::DeviceFailure,
+                format!("texture upload validation failed: {error}"),
+            ));
+        }
+        self.texture_bytes += image_bytes;
+        self.textures.push(resource);
+        Ok(id)
+    }
+
+    /// Draws sprites in stable `(layer, order, input position)` order, then a screen-space debug
+    /// text overlay. Tint and text colors are linear RGBA values.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed error for invalid camera/sprite/text data, unknown texture handles, device
+    /// failure, or surface validation failure. Occlusion, timeout, minimized state, and
+    /// reconfiguration remain non-fatal frame outcomes.
+    pub fn render_scene(
+        &mut self,
+        camera: Camera2D,
+        sprites: &[Sprite],
+        debug_text: &[DebugText],
+    ) -> Result<FrameOutcome, RenderError> {
         validate_camera(camera)?;
         self.check_async_error()?;
         if self.suspended {
             return Ok(FrameOutcome::Skipped);
         }
-
+        let geometry = prepare_scene(sprites, debug_text)?;
+        for batch in &geometry.batches {
+            if usize::try_from(batch.texture.index())
+                .ok()
+                .is_none_or(|index| index >= self.textures.len())
+            {
+                return Err(RenderError::new(
+                    RenderErrorKind::UnknownTexture,
+                    format!(
+                        "sprite refers to unknown texture ID {}",
+                        batch.texture.index()
+                    ),
+                ));
+            }
+        }
         let matrix = view_projection(camera, self.config.width, self.config.height)?;
-        self.queue
-            .write_buffer(&self.view_buffer, 0, &matrix_bytes(matrix));
+        let overlay_matrix = screen_projection(self.config.width, self.config.height)?;
+        validate_projected_vertices(&geometry.sprite_vertices, matrix)?;
+        validate_projected_vertices(&geometry.overlay_vertices, overlay_matrix)?;
+        self.queue.write_buffer(
+            &self.camera_buffer,
+            0,
+            &matrix_pair_bytes(matrix, overlay_matrix),
+        );
         let frame = match self.surface.get_current_texture() {
             CurrentSurfaceTexture::Success(frame) | CurrentSurfaceTexture::Suboptimal(frame) => {
                 frame
@@ -258,13 +366,31 @@ impl Renderer {
                 ));
             }
         };
-        self.draw_frame(frame);
+        self.draw_frame(frame, &geometry);
         self.check_async_error()?;
         Ok(FrameOutcome::Presented)
     }
 
-    fn draw_frame(&mut self, frame: SurfaceTexture) {
+    fn draw_frame(&mut self, frame: SurfaceTexture, geometry: &SceneGeometry) {
         let view = frame.texture.create_view(&TextureViewDescriptor::default());
+        let sprite_buffer = (!geometry.sprite_vertices.is_empty()).then(|| {
+            let data = vertex_bytes(&geometry.sprite_vertices);
+            self.device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("hycel scene sprite vertices"),
+                    contents: &data,
+                    usage: BufferUsages::VERTEX,
+                })
+        });
+        let overlay_buffer = (!geometry.overlay_vertices.is_empty()).then(|| {
+            let data = vertex_bytes(&geometry.overlay_vertices);
+            self.device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("hycel debug overlay vertices"),
+                    contents: &data,
+                    usage: BufferUsages::VERTEX,
+                })
+        });
         let mut encoder = self
             .device
             .create_command_encoder(&CommandEncoderDescriptor {
@@ -293,9 +419,24 @@ impl Renderer {
                 multiview_mask: None,
             });
             pass.set_pipeline(&self.pipeline);
-            pass.set_bind_group(0, &self.bind_group, &[]);
-            pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            pass.draw(0..VERTEX_COUNT, 0..1);
+            if let Some(buffer) = &sprite_buffer {
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                for batch in &geometry.batches {
+                    let index = usize::try_from(batch.texture.index())
+                        .expect("texture ID was range-checked");
+                    pass.set_bind_group(0, &self.textures[index].bind_group, &[]);
+                    pass.draw(batch.vertices.clone(), 0..1);
+                }
+            }
+            if let Some(buffer) = &overlay_buffer {
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                pass.set_bind_group(0, &self.textures[0].bind_group, &[]);
+                pass.draw(
+                    0..u32::try_from(geometry.overlay_vertices.len())
+                        .expect("debug vertex count is bounded"),
+                    0..1,
+                );
+            }
         }
         self.queue.submit([encoder.finish()]);
         self.queue.present(frame);
@@ -472,7 +613,7 @@ fn view_projection(
         [1.0, width / height]
     };
     let scale_x = aspect_scale[0] * camera.zoom;
-    let scale_y = aspect_scale[1] * camera.zoom;
+    let scale_y = -aspect_scale[1] * camera.zoom;
     let matrix = [
         [scale_x, 0.0, 0.0, 0.0],
         [0.0, scale_y, 0.0, 0.0],
@@ -494,12 +635,59 @@ fn view_projection(
     }
 }
 
+fn screen_projection(width: u32, height: u32) -> Result<[[f32; 4]; 4], RenderError> {
+    let width = u16::try_from(width.max(1)).map(f32::from).map_err(|_| {
+        RenderError::new(
+            RenderErrorKind::SurfaceCapabilities,
+            "surface width exceeds the renderer's exact viewport range",
+        )
+    })?;
+    let height = u16::try_from(height.max(1)).map(f32::from).map_err(|_| {
+        RenderError::new(
+            RenderErrorKind::SurfaceCapabilities,
+            "surface height exceeds the renderer's exact viewport range",
+        )
+    })?;
+    Ok([
+        [2.0 / width, 0.0, 0.0, 0.0],
+        [0.0, -2.0 / height, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [-1.0, 1.0, 0.0, 1.0],
+    ])
+}
+
+fn validate_projected_vertices(
+    vertices: &[Vertex],
+    matrix: [[f32; 4]; 4],
+) -> Result<(), RenderError> {
+    for vertex in vertices {
+        let x =
+            vertex.position[0] * matrix[0][0] + vertex.position[1] * matrix[1][0] + matrix[3][0];
+        let y =
+            vertex.position[0] * matrix[0][1] + vertex.position[1] * matrix[1][1] + matrix[3][1];
+        if !x.is_finite() || !y.is_finite() {
+            return Err(RenderError::new(
+                RenderErrorKind::InvalidScene,
+                "scene geometry projects outside the finite clip-coordinate range",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn matrix_bytes(matrix: [[f32; 4]; 4]) -> [u8; 64] {
     let mut bytes = [0_u8; 64];
     for (index, value) in matrix.into_iter().flatten().enumerate() {
         bytes[index * size_of::<f32>()..(index + 1) * size_of::<f32>()]
             .copy_from_slice(&value.to_ne_bytes());
     }
+    bytes
+}
+
+fn matrix_pair_bytes(world: [[f32; 4]; 4], screen: [[f32; 4]; 4]) -> [u8; 128] {
+    let mut bytes = [0_u8; 128];
+    bytes[..64].copy_from_slice(&matrix_bytes(world));
+    bytes[64..].copy_from_slice(&matrix_bytes(screen));
     bytes
 }
 
@@ -514,44 +702,39 @@ fn create_scene_resources(
         label: Some("hycel 2d WGSL scene shader"),
         source: ShaderSource::Wgsl(SCENE_SHADER.into()),
     });
-    let texture = create_demo_texture(device, queue);
-    let view_buffer = device.create_buffer(&BufferDescriptor {
-        label: Some("hycel camera view-projection uniform"),
-        size: 64,
+    let camera_buffer = device.create_buffer(&BufferDescriptor {
+        label: Some("hycel camera and overlay projection uniforms"),
+        size: 128,
         usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
-    let bind_group_layout = create_scene_bind_group_layout(device);
-    let bind_group = device.create_bind_group(&BindGroupDescriptor {
-        label: Some("hycel 2d scene bind group"),
-        layout: &bind_group_layout,
-        entries: &[
-            BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::Sampler(&texture.sampler),
-            },
-            BindGroupEntry {
-                binding: 1,
-                resource: BindingResource::TextureView(&texture.view),
-            },
-            BindGroupEntry {
-                binding: 2,
-                resource: view_buffer.as_entire_binding(),
-            },
-        ],
-    });
+    let texture_bind_group_layout = create_scene_bind_group_layout(device);
     let pipeline_layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
         label: Some("hycel 2d scene pipeline layout"),
-        bind_group_layouts: &[Some(&bind_group_layout)],
+        bind_group_layouts: &[Some(&texture_bind_group_layout)],
         immediate_size: 0,
     });
     let pipeline = create_scene_pipeline(device, &shader, &pipeline_layout, surface_format);
-    let vertex_data = vertex_bytes(&VERTICES);
-    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("hycel scene quad vertices"),
-        contents: &vertex_data,
-        usage: BufferUsages::VERTEX,
-    });
+    let white = RgbaImage::new(1, 1, vec![255; 4])?;
+    let checker = RgbaImage::new(2, 2, TEXTURE_PIXELS.to_vec())?;
+    let textures = vec![
+        create_texture_resource(
+            device,
+            queue,
+            &texture_bind_group_layout,
+            &camera_buffer,
+            white,
+            "hycel white texture",
+        )?,
+        create_texture_resource(
+            device,
+            queue,
+            &texture_bind_group_layout,
+            &camera_buffer,
+            checker,
+            "hycel checker demonstration texture",
+        )?,
+    ];
     if let Some(error) = pollster::block_on(scope.pop()) {
         let error = RenderError::new(RenderErrorKind::ShaderValidation, error.to_string());
         record_async_error(async_error, error.clone());
@@ -559,35 +742,41 @@ fn create_scene_resources(
     }
     Ok(SceneResources {
         pipeline,
-        vertex_buffer,
-        view_buffer,
-        bind_group,
-        bind_group_layout,
-        texture: texture.texture,
-        texture_view: texture.view,
-        sampler: texture.sampler,
+        camera_buffer,
+        texture_bind_group_layout,
+        textures,
     })
 }
 
-struct DemoTexture {
-    texture: Texture,
-    view: TextureView,
-    sampler: Sampler,
-}
-
-fn create_demo_texture(device: &Device, queue: &Queue) -> DemoTexture {
+fn create_texture_resource(
+    device: &Device,
+    queue: &Queue,
+    bind_group_layout: &BindGroupLayout,
+    camera_buffer: &Buffer,
+    image: RgbaImage,
+    label: &str,
+) -> Result<GpuTexture, RenderError> {
+    if image.width() > device.limits().max_texture_dimension_2d
+        || image.height() > device.limits().max_texture_dimension_2d
+    {
+        return Err(RenderError::new(
+            RenderErrorKind::InvalidTextureData,
+            "texture dimensions exceed the device limit",
+        ));
+    }
+    let (width, height, pixels) = image.into_parts();
     let sampler = device.create_sampler(&SamplerDescriptor {
-        label: Some("hycel scene texture sampler"),
+        label: Some("hycel nearest-filtered texture sampler"),
         mag_filter: FilterMode::Nearest,
         min_filter: FilterMode::Nearest,
         mipmap_filter: wgpu::MipmapFilterMode::Nearest,
         ..Default::default()
     });
     let texture = device.create_texture(&TextureDescriptor {
-        label: Some("hycel checker demonstration texture"),
+        label: Some(label),
         size: Extent3d {
-            width: 2,
-            height: 2,
+            width,
+            height,
             depth_or_array_layers: 1,
         },
         mip_level_count: 1,
@@ -604,24 +793,43 @@ fn create_demo_texture(device: &Device, queue: &Queue) -> DemoTexture {
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
         },
-        &TEXTURE_PIXELS,
+        &pixels,
         wgpu::TexelCopyBufferLayout {
             offset: 0,
-            bytes_per_row: Some(8),
-            rows_per_image: Some(2),
+            bytes_per_row: Some(width * 4),
+            rows_per_image: Some(height),
         },
         Extent3d {
-            width: 2,
-            height: 2,
+            width,
+            height,
             depth_or_array_layers: 1,
         },
     );
     let view = texture.create_view(&TextureViewDescriptor::default());
-    DemoTexture {
-        texture,
-        view,
-        sampler,
-    }
+    let bind_group = device.create_bind_group(&BindGroupDescriptor {
+        label: Some("hycel scene texture and projection bindings"),
+        layout: bind_group_layout,
+        entries: &[
+            BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::Sampler(&sampler),
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::TextureView(&view),
+            },
+            BindGroupEntry {
+                binding: 2,
+                resource: camera_buffer.as_entire_binding(),
+            },
+        ],
+    });
+    Ok(GpuTexture {
+        _texture: texture,
+        _view: view,
+        _sampler: sampler,
+        bind_group,
+    })
 }
 
 fn create_scene_bind_group_layout(device: &Device) -> BindGroupLayout {
@@ -718,48 +926,12 @@ fn vertex_bytes(vertices: &[Vertex]) -> Vec<u8> {
             .into_iter()
             .chain(vertex.uv)
             .chain(vertex.color)
-            .chain([vertex.textured])
+            .chain([vertex.screen_space])
         {
             bytes.extend_from_slice(&value.to_ne_bytes());
         }
     }
     bytes
-}
-
-#[derive(Clone, Copy)]
-struct Vertex {
-    position: [f32; 2],
-    uv: [f32; 2],
-    color: [f32; 4],
-    textured: f32,
-}
-
-const fn scene_vertices() -> [Vertex; 12] {
-    let solid = [1.0, 0.48, 0.12, 1.0];
-    let white = [1.0, 1.0, 1.0, 1.0];
-    [
-        vertex([-0.82, -0.55], [0.0, 1.0], solid, 0.0),
-        vertex([-0.22, -0.55], [1.0, 1.0], solid, 0.0),
-        vertex([-0.22, 0.55], [1.0, 0.0], solid, 0.0),
-        vertex([-0.82, -0.55], [0.0, 1.0], solid, 0.0),
-        vertex([-0.22, 0.55], [1.0, 0.0], solid, 0.0),
-        vertex([-0.82, 0.55], [0.0, 0.0], solid, 0.0),
-        vertex([0.22, -0.55], [0.0, 1.0], white, 1.0),
-        vertex([0.82, -0.55], [1.0, 1.0], white, 1.0),
-        vertex([0.82, 0.55], [1.0, 0.0], white, 1.0),
-        vertex([0.22, -0.55], [0.0, 1.0], white, 1.0),
-        vertex([0.82, 0.55], [1.0, 0.0], white, 1.0),
-        vertex([0.22, 0.55], [0.0, 0.0], white, 1.0),
-    ]
-}
-
-const fn vertex(position: [f32; 2], uv: [f32; 2], color: [f32; 4], textured: f32) -> Vertex {
-    Vertex {
-        position,
-        uv,
-        color,
-        textured,
-    }
 }
 
 fn native_backend() -> Backends {
@@ -785,7 +957,7 @@ fn native_backend() -> Backends {
 mod tests {
     use super::{
         Camera2D, RenderError, RenderErrorKind, choose_surface_format, matrix_bytes,
-        validate_camera, validate_surface_dimensions, view_projection,
+        screen_projection, validate_camera, validate_surface_dimensions, view_projection,
     };
     use hycel_platform::SurfaceSize;
     use wgpu::TextureFormat;
@@ -802,10 +974,19 @@ mod tests {
         )
         .unwrap();
         assert!((matrix[0][0] - 1.125).abs() < f32::EPSILON);
-        assert!((matrix[1][1] - 2.0).abs() < f32::EPSILON);
+        assert!((matrix[1][1] + 2.0).abs() < f32::EPSILON);
         assert!((matrix[3][0] + 0.5625).abs() < f32::EPSILON);
-        assert!((matrix[3][1] - 0.5).abs() < f32::EPSILON);
+        assert!((matrix[3][1] + 0.5).abs() < f32::EPSILON);
         assert_eq!(matrix_bytes(matrix).len(), 64);
+    }
+
+    #[test]
+    fn screen_projection_maps_pixel_coordinates_into_top_left_origin_clip_space() {
+        let matrix = screen_projection(800, 450).unwrap();
+        assert!((matrix[0][0] - 2.0 / 800.0).abs() < f32::EPSILON);
+        assert!((matrix[1][1] + 2.0 / 450.0).abs() < f32::EPSILON);
+        assert!((matrix[3][0] + 1.0).abs() < f32::EPSILON);
+        assert!((matrix[3][1] - 1.0).abs() < f32::EPSILON);
     }
 
     #[test]

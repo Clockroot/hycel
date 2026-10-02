@@ -11,7 +11,9 @@ use std::{
 };
 
 use hycel_platform::{EventAction, PlatformEvent, WindowConfig, WindowHandle, run_window};
-use hycel_render::{Camera2D, FrameOutcome, RenderError, Renderer};
+use hycel_render::{
+    Camera2D, DebugText, FrameOutcome, RenderError, Renderer, RgbaImage, Sprite, TextureId,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let finished = Arc::new(AtomicBool::new(false));
@@ -28,16 +30,54 @@ fn main() -> Result<(), Box<dyn Error>> {
     result
 }
 
+fn create_smoke_renderer(window: Arc<WindowHandle>) -> Result<(Renderer, TextureId), RenderError> {
+    let mut renderer = Renderer::new(window)?;
+    let pixels = [
+        255, 96, 72, 255, 64, 160, 255, 255, 255, 208, 64, 255, 64, 232, 144, 255,
+    ];
+    let image = RgbaImage::new(2, 2, pixels.to_vec())?;
+    let texture = renderer.load_texture(image)?;
+    Ok((renderer, texture))
+}
+
+fn render_smoke_frame(
+    renderer: &mut Renderer,
+    texture: TextureId,
+) -> Result<FrameOutcome, RenderError> {
+    let sprites = [
+        Sprite {
+            layer: 1,
+            order: 0,
+            tint: [1.0, 0.48, 0.12, 1.0],
+            ..Sprite::new(TextureId::WHITE, [-0.5, 0.0], [0.7, 1.0])
+        },
+        Sprite {
+            layer: 2,
+            order: 0,
+            tint: [0.8, 0.9, 1.0, 0.85],
+            ..Sprite::new(texture, [0.5, 0.0], [0.7, 1.0])
+        },
+    ];
+    let overlay = [DebugText {
+        position: [12, 12],
+        text: "HYCEL 2D SMOKE".to_owned(),
+        scale: 2,
+        color: [1.0, 1.0, 1.0, 1.0],
+    }];
+    renderer.render_scene(Camera2D::default(), &sprites, &overlay)
+}
+
 fn run_smoke() -> Result<(), Box<dyn Error>> {
     let mut window: Option<WindowHandle> = None;
     let mut renderer: Option<Renderer> = None;
+    let mut uploaded_texture: Option<TextureId> = None;
     let frames = Rc::new(Cell::new(0_u32));
     let frame_count = frames.clone();
     let error = Rc::new(Cell::new(None::<RenderError>));
     let render_error = error.clone();
 
     run_window(
-        WindowConfig::new("Hycel Phase 4.3 render smoke", 800, 450)?,
+        WindowConfig::new("Hycel 2D presentation smoke", 800, 450)?,
         move |event| match event {
             PlatformEvent::WindowCreated {
                 window: created,
@@ -47,9 +87,10 @@ fn run_smoke() -> Result<(), Box<dyn Error>> {
                     "render_window={}x{} scale_factor={}",
                     metrics.surface_size.width, metrics.surface_size.height, metrics.scale_factor
                 );
-                match Renderer::new(Arc::new(created.clone())) {
-                    Ok(created_renderer) => {
+                match create_smoke_renderer(Arc::new(created.clone())) {
+                    Ok((created_renderer, texture)) => {
                         renderer = Some(created_renderer);
+                        uploaded_texture = Some(texture);
                         window = Some(created);
                         window.as_ref().map(WindowHandle::request_redraw);
                         EventAction::Continue
@@ -77,7 +118,10 @@ fn run_smoke() -> Result<(), Box<dyn Error>> {
                 let Some(renderer) = &mut renderer else {
                     return EventAction::Exit;
                 };
-                match renderer.render(Camera2D::default()) {
+                let Some(texture) = uploaded_texture else {
+                    return EventAction::Exit;
+                };
+                match render_smoke_frame(renderer, texture) {
                     Ok(FrameOutcome::Presented) => {
                         let next_count = frame_count.get() + 1;
                         frame_count.set(next_count);

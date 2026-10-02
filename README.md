@@ -21,9 +21,10 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-assets`: bounded source hashing, versioned import fingerprints/records, deterministic cache/reimport decisions, and direct scene/resource dependency reports; format decoders and importer execution are not implemented.
 - `hycel-cli`: `hycel new`, `check`, and read-only `inspect` foundations with versioned JSON envelopes and stable exit codes.
 - `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
+- `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. This is not yet integrated with the headless demo or an asset decoder; see [`docs/rendering.md`](docs/rendering.md).
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Project and scene schema proposals: [`docs/project-format.md`](docs/project-format.md) and [`docs/scene-format.md`](docs/scene-format.md), with parser implementation in `hycel-project`; asset identity and import contracts are in [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
-- Design and release requirements: [`docs/`](docs/).
+- Design and release requirements: [`docs/`](docs/), including the early [`2D rendering guide`](docs/rendering.md).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
