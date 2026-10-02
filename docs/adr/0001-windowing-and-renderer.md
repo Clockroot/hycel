@@ -26,9 +26,10 @@ This is a feasibility and architecture decision, not a benchmark, legal certific
 
 1. Provisionally use `wgpu = 30.0.1`, `winit = 0.31.0-beta.3`, and `pollster = 1.0.1` for Phase 4 implementation. Keep window, event-loop, surface, adapter, device, and texture types behind Hycel-owned interfaces; do not expose them through `hycel-core` or game-facing APIs.
 2. Keep authoritative simulation independent of window/GPU/device availability. A renderer failure must be surfaced as a diagnostic and must not mutate or corrupt simulation state.
-3. Keep `winit 0.31.0-beta.3` provisional. Before a 1.0 dependency freeze, move to a stable winit release, review its migration/API changes and dependency graph, and rerun the target/runtime checks. Track [winit #4721](https://github.com/rust-windowing/winit/issues/4721) and require Windows mixed-DPI behavior to be validated on physical Windows 11 hardware with at least two differently scaled displays. If the issue remains unresolved, record an explicit resolution or constrained behavior for the engine's public resize contract before release.
-4. Intended native mapping remains Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1+ on Linux. OpenGL/CPU rendering is not a 1.0 fallback promise. A missing compatible adapter/driver must produce an actionable error, not a silent backend switch.
-5. Retain Rust 1.87.0 MSRV. Do not claim any planned OS/architecture pair is supported until native runtime, minimum-OS, and packaging evidence passes. Hosted virtual/software adapters are feasibility evidence only.
+3. Put the initial `winit` integration in `hycel-platform`. It exposes Hycel-owned window config/events and an opaque `WindowHandle`; native `winit` window/event types remain private. The handle forwards raw-window-handle traits so the future renderer can create a surface without depending directly on `winit`.
+4. Keep `winit 0.31.0-beta.3` provisional. Before a 1.0 dependency freeze, move to a stable winit release, review its migration/API changes and dependency graph, and rerun the target/runtime checks. Track [winit #4721](https://github.com/rust-windowing/winit/issues/4721) and require Windows mixed-DPI behavior to be validated on physical Windows 11 hardware with at least two differently scaled displays. If the issue remains unresolved, record an explicit resolution or constrained behavior for the engine's public resize contract before release.
+5. Intended native mapping remains Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1+ on Linux. OpenGL/CPU rendering is not a 1.0 fallback promise. A missing compatible adapter/driver must produce an actionable error, not a silent backend switch.
+6. Retain Rust 1.87.0 MSRV. Do not claim any planned OS/architecture pair is supported until native runtime, minimum-OS, and packaging evidence passes. Hosted virtual/software adapters are feasibility evidence only.
 
 ## Phase 4.1 evidence
 
@@ -49,6 +50,6 @@ This is a feasibility and architecture decision, not a benchmark, legal certific
 ## Consequences
 
 - Phase 4 may add renderer/window dependencies only to implementation crates; `hycel-core` remains graphics/window independent.
-- Phase 4.2 implements lifecycle/windowing behind Hycel-owned interfaces using the provisional API; Phase 4.3 must draw a textured sprite and test shader/device-loss/resize errors.
+- Phase 4.2 implements lifecycle/windowing behind Hycel-owned interfaces using the provisional API. The current platform API follows OS-suggested size changes and deliberately does not expose winit's scale-change size writer; custom scale-time size requests are not part of the initial contract. Phase 4.3 must draw a textured sprite and test shader/device-loss/resize errors.
 - Before 1.0, replace the beta with a stable winit release and rerun all target, runtime, DPI, dependency/license, minimum-OS, and packaging checks. A clean compile alone is insufficient.
 - Renderer decisions must be revisited if the backend, MSRV, data boundary, target matrix, or public resize contract changes.

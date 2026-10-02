@@ -5,6 +5,7 @@ members = [
     "crates/hycel-cli",
     "crates/hycel-core",
     "crates/hycel-project",
+    "crates/hycel-platform",
     "crates/hycel-demo",
 ]
 
@@ -22,6 +23,7 @@ serde_json = "1.0.151"
 sha2 = "0.10.9"
 semver = "1.0.27"
 toml = "0.9.7"
+winit = { version = "=0.31.0-beta.3", default-features = false, features = ["x11", "wayland", "wayland-dlopen"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

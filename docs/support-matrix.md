@@ -17,7 +17,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 ## Graphics backend policy
 
-- Provisional Phase 4 implementation candidate: `wgpu 30.0.1` + `winit 0.31.0-beta.3` + `pollster 1.0.1`, recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). The beta is pre-release and is not a 1.0 dependency decision. Keep it behind Hycel-owned interfaces; require a stable winit release, dependency re-review, and physical Windows mixed-DPI validation before support claims. The beta remains in an isolated spike until Phase 4.2 adds it to implementation crates.
+- Provisional Phase 4 implementation candidate: `wgpu 30.0.1` + `winit 0.31.0-beta.3` + `pollster 1.0.1`, recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). The beta is pre-release and is not a 1.0 dependency decision. It is now used by `hycel-platform` behind Hycel-owned interfaces; the isolated Phase 4.1 spike remains comparison evidence. Require a stable winit release, dependency re-review, and physical Windows mixed-DPI validation before support claims.
 - Intended native mapping: Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1 or newer on Linux.
 - OpenGL or CPU/software rendering is **not** part of the 1.0 product fallback promise. The Linux llvmpipe and Windows Basic Render Driver paths were exercised only as hosted-CI feasibility adapters, not as supported end-user fallback modes.
 - The current headless kernel has no renderer. Consequently, no graphics backend is currently supported; backend names above are planned targets only.

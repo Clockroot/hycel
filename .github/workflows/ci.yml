@@ -153,6 +153,15 @@ jobs:
           else
             cargo run --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --release --locked -- --smoke
           fi
+      - name: Run Hycel platform window lifecycle smoke
+        if: matrix.smoke
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run -a cargo run -p hycel-platform --example window_smoke --release --locked
+          else
+            cargo run -p hycel-platform --example window_smoke --release --locked
+          fi
 
   dependency-audit:
     name: Dependency, license, and source audit
