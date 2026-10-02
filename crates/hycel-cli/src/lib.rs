@@ -13,6 +13,9 @@ use std::path::{Path, PathBuf};
 
 use getrandom::fill as getrandom_fill;
 use hycel_assets::AssetDependencyReport;
+use hycel_input::{
+    AxisBinding, ButtonBinding, FocusLossBehavior, InputBindings, InputControl, KeyCode,
+};
 use hycel_project::{
     ComponentRegistry, Diagnostic, MAX_DOCUMENT_BYTES, ProjectManifest, ResourceDescriptor,
     ResourceRegistry, SceneDocument, resolve_existing_project_path, validate_project_documents,
@@ -835,6 +838,7 @@ struct PreparedProject {
     project_id: String,
     scene_id: String,
     manifest_bytes: Vec<u8>,
+    input_bytes: Vec<u8>,
     scene_bytes: Vec<u8>,
 }
 
@@ -877,6 +881,7 @@ fn prepare_project(name: &str) -> Result<PreparedProject, (i32, OutputDiagnostic
             )
         })?
         .into_bytes();
+    let input_bytes = starter_input_bytes()?;
     let scene = NewScene {
         schema_version: 2,
         id: scene_id.clone(),
@@ -902,8 +907,55 @@ fn prepare_project(name: &str) -> Result<PreparedProject, (i32, OutputDiagnostic
         project_id,
         scene_id,
         manifest_bytes,
+        input_bytes,
         scene_bytes,
     })
+}
+
+fn starter_input_bytes() -> Result<Vec<u8>, (i32, OutputDiagnostic)> {
+    let input_bindings = InputBindings::new(
+        FocusLossBehavior::ReleaseAll,
+        vec![ButtonBinding::new(
+            1,
+            vec![InputControl::Key {
+                code: KeyCode::Space,
+            }],
+        )],
+        vec![AxisBinding::new(
+            0,
+            vec![
+                InputControl::Key {
+                    code: KeyCode::KeyA,
+                },
+                InputControl::Key {
+                    code: KeyCode::ArrowLeft,
+                },
+            ],
+            vec![
+                InputControl::Key {
+                    code: KeyCode::KeyD,
+                },
+                InputControl::Key {
+                    code: KeyCode::ArrowRight,
+                },
+            ],
+        )],
+    )
+    .expect("built-in starter input bindings are valid");
+    input_bindings
+        .to_json()
+        .map(String::into_bytes)
+        .map_err(|error| {
+            (
+                3,
+                cli_diagnostic(
+                    "HYCEL-CLI-107",
+                    None,
+                    "input.json",
+                    format!("cannot serialize starter input bindings: {error}"),
+                ),
+            )
+        })
 }
 
 fn create_project(path: &Path, requested_name: Option<&str>, json: bool) -> CliOutput {
@@ -984,6 +1036,9 @@ fn create_project(path: &Path, requested_name: Option<&str>, json: bool) -> CliO
     }
     if let Err(error) = write_new_file(&path.join("hycel.toml"), &prepared.manifest_bytes) {
         return incomplete_project(path, "hycel.toml", &error, json);
+    }
+    if let Err(error) = write_new_file(&path.join("input.json"), &prepared.input_bytes) {
+        return incomplete_project(path, "input.json", &error, json);
     }
     if let Err(error) = write_new_file(&path.join("scenes/first-room.json"), &prepared.scene_bytes)
     {
@@ -1175,6 +1230,7 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
 
+    use hycel_input::InputBindings;
     use serde_json::Value;
 
     use super::execute;
@@ -1203,6 +1259,12 @@ mod tests {
             assert!(matches!(id.as_bytes()[19], b'8' | b'9' | b'a' | b'b'));
         }
 
+        let input_bytes = fs::read(project.join("input.json")).unwrap();
+        let input = InputBindings::parse_json(&input_bytes).unwrap();
+        assert_eq!(input.schema_version(), 1);
+        assert_eq!(input.buttons().len(), 1);
+        assert_eq!(input.axes().len(), 1);
+
         let check = execute(args(["check", project.to_str().unwrap(), "--json"]));
         assert_eq!(check.exit_code, 0, "{}", check.stdout);
         let first_inspection = execute(args(["inspect", project.to_str().unwrap(), "--json"]));
@@ -1215,6 +1277,32 @@ mod tests {
         assert_eq!(
             inspected["result"]["resources"].as_array().unwrap().len(),
             0
+        );
+        fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn check_reports_invalid_input_bindings_with_stable_diagnostics() {
+        let directory = test_directory("cli-invalid-input");
+        let project = directory.join("project");
+        let created = execute(args(["new", project.to_str().unwrap()]));
+        assert_eq!(created.exit_code, 0, "{}", created.stderr);
+        fs::write(
+            project.join("input.json"),
+            br#"{"schema_version":9,"focus_loss":"release_all","buttons":[],"axes":[]}"#,
+        )
+        .unwrap();
+        let output = execute(args(["check", project.to_str().unwrap(), "--json"]));
+        assert_eq!(output.exit_code, 1);
+        let envelope: Value = serde_json::from_str(&output.stdout).unwrap();
+        assert!(
+            envelope["diagnostics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|diagnostic| {
+                    diagnostic["code"] == "HYCEL-INPUT-003" && diagnostic["file"] == "input.json"
+                })
         );
         fs::remove_dir_all(directory).unwrap();
     }

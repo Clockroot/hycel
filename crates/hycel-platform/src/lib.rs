@@ -6,12 +6,14 @@
 
 use std::{cell::RefCell, error::Error, fmt, rc::Rc, sync::Arc};
 
+use hycel_input::{InputEvent, KeyCode, MouseButton};
 use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
     error::EventLoopError,
-    event::WindowEvent as WinitWindowEvent,
+    event::{ElementState, WindowEvent as WinitWindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop},
+    keyboard::{KeyCode as NativeKeyCode, PhysicalKey},
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::{Window as NativeWindow, WindowAttributes, WindowId},
 };
@@ -139,6 +141,8 @@ pub enum PlatformEvent {
     CloseRequested,
     /// The window needs its next presentation frame.
     RedrawRequested,
+    /// A supported physical keyboard key or mouse button changed state.
+    Input(InputEvent),
 }
 
 /// Whether the application wants the event loop to continue.
@@ -388,6 +392,28 @@ fn event_requires_exit(event: &PlatformEvent, action: EventAction) -> bool {
 
 fn normalize_window_event(event: &WinitWindowEvent) -> Option<PlatformEvent> {
     match event {
+        WinitWindowEvent::KeyboardInput {
+            event,
+            is_synthetic,
+            ..
+        } => {
+            let PhysicalKey::Code(code) = event.physical_key else {
+                return None;
+            };
+            Some(PlatformEvent::Input(InputEvent::Key {
+                code: map_key_code(code)?,
+                pressed: event.state == ElementState::Pressed,
+                synthetic: *is_synthetic,
+            }))
+        }
+        WinitWindowEvent::PointerButton {
+            button: winit::event::ButtonSource::Mouse(button),
+            state,
+            ..
+        } => Some(PlatformEvent::Input(InputEvent::MouseButton {
+            button: map_mouse_button(*button)?,
+            pressed: *state == ElementState::Pressed,
+        })),
         WinitWindowEvent::SurfaceResized(size) => Some(PlatformEvent::Resized((*size).into())),
         WinitWindowEvent::ScaleFactorChanged { scale_factor, .. } => {
             Some(PlatformEvent::ScaleFactorChanged(*scale_factor))
@@ -399,11 +425,92 @@ fn normalize_window_event(event: &WinitWindowEvent) -> Option<PlatformEvent> {
     }
 }
 
+fn map_key_code(code: NativeKeyCode) -> Option<KeyCode> {
+    Some(match code {
+        NativeKeyCode::KeyA => KeyCode::KeyA,
+        NativeKeyCode::KeyB => KeyCode::KeyB,
+        NativeKeyCode::KeyC => KeyCode::KeyC,
+        NativeKeyCode::KeyD => KeyCode::KeyD,
+        NativeKeyCode::KeyE => KeyCode::KeyE,
+        NativeKeyCode::KeyF => KeyCode::KeyF,
+        NativeKeyCode::KeyG => KeyCode::KeyG,
+        NativeKeyCode::KeyH => KeyCode::KeyH,
+        NativeKeyCode::KeyI => KeyCode::KeyI,
+        NativeKeyCode::KeyJ => KeyCode::KeyJ,
+        NativeKeyCode::KeyK => KeyCode::KeyK,
+        NativeKeyCode::KeyL => KeyCode::KeyL,
+        NativeKeyCode::KeyM => KeyCode::KeyM,
+        NativeKeyCode::KeyN => KeyCode::KeyN,
+        NativeKeyCode::KeyO => KeyCode::KeyO,
+        NativeKeyCode::KeyP => KeyCode::KeyP,
+        NativeKeyCode::KeyQ => KeyCode::KeyQ,
+        NativeKeyCode::KeyR => KeyCode::KeyR,
+        NativeKeyCode::KeyS => KeyCode::KeyS,
+        NativeKeyCode::KeyT => KeyCode::KeyT,
+        NativeKeyCode::KeyU => KeyCode::KeyU,
+        NativeKeyCode::KeyV => KeyCode::KeyV,
+        NativeKeyCode::KeyW => KeyCode::KeyW,
+        NativeKeyCode::KeyX => KeyCode::KeyX,
+        NativeKeyCode::KeyY => KeyCode::KeyY,
+        NativeKeyCode::KeyZ => KeyCode::KeyZ,
+        NativeKeyCode::Digit0 => KeyCode::Digit0,
+        NativeKeyCode::Digit1 => KeyCode::Digit1,
+        NativeKeyCode::Digit2 => KeyCode::Digit2,
+        NativeKeyCode::Digit3 => KeyCode::Digit3,
+        NativeKeyCode::Digit4 => KeyCode::Digit4,
+        NativeKeyCode::Digit5 => KeyCode::Digit5,
+        NativeKeyCode::Digit6 => KeyCode::Digit6,
+        NativeKeyCode::Digit7 => KeyCode::Digit7,
+        NativeKeyCode::Digit8 => KeyCode::Digit8,
+        NativeKeyCode::Digit9 => KeyCode::Digit9,
+        NativeKeyCode::ArrowLeft => KeyCode::ArrowLeft,
+        NativeKeyCode::ArrowRight => KeyCode::ArrowRight,
+        NativeKeyCode::ArrowUp => KeyCode::ArrowUp,
+        NativeKeyCode::ArrowDown => KeyCode::ArrowDown,
+        NativeKeyCode::Space => KeyCode::Space,
+        NativeKeyCode::Enter => KeyCode::Enter,
+        NativeKeyCode::Escape => KeyCode::Escape,
+        NativeKeyCode::Tab => KeyCode::Tab,
+        NativeKeyCode::Backspace => KeyCode::Backspace,
+        NativeKeyCode::ShiftLeft => KeyCode::LeftShift,
+        NativeKeyCode::ShiftRight => KeyCode::RightShift,
+        NativeKeyCode::ControlLeft => KeyCode::LeftControl,
+        NativeKeyCode::ControlRight => KeyCode::RightControl,
+        NativeKeyCode::AltLeft => KeyCode::LeftAlt,
+        NativeKeyCode::AltRight => KeyCode::RightAlt,
+        NativeKeyCode::F1 => KeyCode::F1,
+        NativeKeyCode::F2 => KeyCode::F2,
+        NativeKeyCode::F3 => KeyCode::F3,
+        NativeKeyCode::F4 => KeyCode::F4,
+        NativeKeyCode::F5 => KeyCode::F5,
+        NativeKeyCode::F6 => KeyCode::F6,
+        NativeKeyCode::F7 => KeyCode::F7,
+        NativeKeyCode::F8 => KeyCode::F8,
+        NativeKeyCode::F9 => KeyCode::F9,
+        NativeKeyCode::F10 => KeyCode::F10,
+        NativeKeyCode::F11 => KeyCode::F11,
+        NativeKeyCode::F12 => KeyCode::F12,
+        _ => return None,
+    })
+}
+
+fn map_mouse_button(button: winit::event::MouseButton) -> Option<MouseButton> {
+    Some(match button {
+        winit::event::MouseButton::Left => MouseButton::Left,
+        winit::event::MouseButton::Right => MouseButton::Right,
+        winit::event::MouseButton::Middle => MouseButton::Middle,
+        winit::event::MouseButton::Back => MouseButton::Back,
+        winit::event::MouseButton::Forward => MouseButton::Forward,
+        _ => return None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         LogicalWindowSize, PlatformError, PlatformErrorKind, PlatformEvent, SurfaceSize,
-        WindowConfig, WindowConfigError, event_requires_exit, normalize_window_event,
+        WindowConfig, WindowConfigError, event_requires_exit, map_key_code, map_mouse_button,
+        normalize_window_event,
     };
     use std::{error::Error, fmt};
     use winit::{
@@ -411,6 +518,24 @@ mod tests {
         event::WindowEvent as WinitWindowEvent,
         raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     };
+
+    #[test]
+    fn native_physical_keys_and_mouse_buttons_map_to_stable_hycel_controls() {
+        assert_eq!(
+            map_key_code(winit::keyboard::KeyCode::KeyA),
+            Some(hycel_input::KeyCode::KeyA)
+        );
+        assert_eq!(
+            map_key_code(winit::keyboard::KeyCode::ArrowLeft),
+            Some(hycel_input::KeyCode::ArrowLeft)
+        );
+        assert_eq!(map_key_code(winit::keyboard::KeyCode::CapsLock), None);
+        assert_eq!(
+            map_mouse_button(winit::event::MouseButton::Back),
+            Some(hycel_input::MouseButton::Back)
+        );
+        assert_eq!(map_mouse_button(winit::event::MouseButton::Button6), None);
+    }
 
     #[test]
     fn config_preserves_title_logical_size_and_resizability() {

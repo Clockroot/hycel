@@ -7,6 +7,7 @@ This document specifies the project layout and manifest contract implemented by 
 ```text
 my-game/
 ├── hycel.toml          # required project manifest
+├── input.json          # optional, strict versioned input bindings
 ├── src/                # Rust game code
 ├── assets/             # source textures, audio, fonts, and other imported content
 ├── scenes/             # versioned, strict JSON scene/resource documents
@@ -14,7 +15,7 @@ my-game/
 └── .hycel/             # generated caches and editor/engine state; safe to regenerate
 ```
 
-`hycel.toml` is the only project-root marker. Source, asset, and scene paths are project-relative, UTF-8, and must resolve inside the project root after normalization and symlink resolution. Paths may not be absolute or contain a traversal outside the project. Their actual existence and file types are checked by project validation, not by the manifest parser. Containment checks are point-in-time; file-opening callers must prevent concurrent project path-component changes and must not use these checks alone as a sandbox against a hostile concurrent process. `build/` and `.hycel/` are generated directories and should be ignored by version control; project source and authored content are never generated or discarded by the engine.
+`hycel.toml` is the only project-root marker. `input.json`, when present, is a strict version-1 document for physical keyboard/mouse-to-action bindings; new projects include a starter file while existing projects may omit it. See [`input.md`](input.md). Source, asset, and scene paths are project-relative, UTF-8, and must resolve inside the project root after normalization and symlink resolution. Paths may not be absolute or contain a traversal outside the project. Their actual existence and file types are checked by project validation, not by the manifest parser. Containment checks are point-in-time; file-opening callers must prevent concurrent project path-component changes and must not use these checks alone as a sandbox against a hostile concurrent process. `build/` and `.hycel/` are generated directories and should be ignored by version control; project source and authored content are never generated or discarded by the engine.
 
 The first layout uses fixed directory names rather than user-configurable roots. This keeps tooling predictable and avoids allowing project files to redirect writes to arbitrary locations. A later ADR is required before making roots configurable.
 
@@ -70,6 +71,7 @@ Each persisted envelope has an independent version and unsupported versions fail
 | `hycel.toml` manifest | 1 | none supported | Strict parse; no rewrite/migration until a real prior schema exists. |
 | Scene JSON | 2 | 1 | Explicit 1→2 migration adds empty entity tags; per-file backup, atomic commit, and validated rollback are implemented in `hycel-project`. |
 | Resource descriptor JSON | 1 | none supported | Strict parse; no rewrite/migration until a real prior schema exists. |
+| Optional `input.json` bindings | 1 | none supported | Strict bounded parse; existing projects may omit the file and use an empty binding map. Unsupported versions fail closed. |
 | Replay JSON | 1 | none supported | Separate deterministic replay format; compatibility is documented in [ADR 0002](adr/0002-replay-format-and-state-hash.md). Unsupported versions fail closed. |
 | Component payload | Component-registered | Per component | The component registry accepts only the registered type/version; payload migrations are not yet implemented. |
 | Generated import record | 1 | none supported | Strict, fingerprint-verified metadata under `.hycel/`; see [`asset-pipeline.md`](asset-pipeline.md). |

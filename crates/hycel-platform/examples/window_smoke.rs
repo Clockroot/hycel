@@ -80,6 +80,7 @@ fn run_smoke() -> Result<(), Box<dyn Error>> {
                     EventAction::Continue
                 }
             }
+            PlatformEvent::Input(_) => EventAction::Continue,
             PlatformEvent::CloseRequested => EventAction::Exit,
         },
     )?;

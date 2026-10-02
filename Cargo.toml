@@ -4,6 +4,7 @@ members = [
     "crates/hycel-assets",
     "crates/hycel-cli",
     "crates/hycel-core",
+    "crates/hycel-input",
     "crates/hycel-project",
     "crates/hycel-platform",
     "crates/hycel-render",

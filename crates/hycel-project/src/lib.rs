@@ -10,11 +10,13 @@ use std::fmt;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use hycel_input::{InputBindingsErrorKind, MAX_INPUT_BINDINGS_BYTES};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod migration;
+pub use hycel_input::InputBindings;
 pub use migration::{
     MigrationReceipt, migrate_scene_file, migrate_scene_json, restore_scene_backup,
 };
@@ -1300,6 +1302,7 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
             None
         }
     };
+    diagnostics.extend(validate_optional_input_bindings(&canonical_root));
     let manifest = if let Some(path) = manifest_path {
         match read_limited_file(&path, MAX_MANIFEST_BYTES) {
             Ok(bytes) => match String::from_utf8(bytes) {
@@ -1351,6 +1354,74 @@ pub fn validate_project_root(project_root: &Path) -> Result<ProjectManifest, Vec
             "$",
             "project validation completed without a parsed manifest",
         )]),
+    }
+}
+
+fn validate_optional_input_bindings(project_root: &Path) -> Vec<Diagnostic> {
+    let input_file = "input.json";
+    let file_path = project_root.join(input_file);
+    match std::fs::symlink_metadata(&file_path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Vec::new(),
+        Err(error) => {
+            return vec![Diagnostic::new(
+                "HYCEL-PROJECT-013",
+                Some(input_file),
+                "$",
+                format!("cannot inspect optional input bindings: {error}"),
+            )];
+        }
+        Ok(_) => {}
+    }
+    let path = match resolve_existing_project_path(project_root, input_file) {
+        Ok(path) if path.is_file() => path,
+        Ok(_) => {
+            return vec![Diagnostic::new(
+                "HYCEL-PROJECT-014",
+                Some(input_file),
+                "$",
+                "input bindings path is not a regular file",
+            )];
+        }
+        Err(mut diagnostic) => {
+            diagnostic.code = "HYCEL-PROJECT-015";
+            return vec![diagnostic];
+        }
+    };
+    let bytes = match read_limited_file(&path, MAX_INPUT_BINDINGS_BYTES) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::InvalidData => {
+            return vec![Diagnostic::new(
+                "HYCEL-INPUT-001",
+                Some(input_file),
+                "$",
+                format!("input bindings exceed the {MAX_INPUT_BINDINGS_BYTES}-byte limit"),
+            )];
+        }
+        Err(error) => {
+            return vec![Diagnostic::new(
+                "HYCEL-PROJECT-016",
+                Some(input_file),
+                "$",
+                format!("cannot read input bindings: {error}"),
+            )];
+        }
+    };
+    match InputBindings::parse_json(&bytes) {
+        Ok(_) => Vec::new(),
+        Err(error) => {
+            let code = match error.kind() {
+                InputBindingsErrorKind::TooLarge => "HYCEL-INPUT-001",
+                InputBindingsErrorKind::InvalidDocument => "HYCEL-INPUT-002",
+                InputBindingsErrorKind::UnsupportedVersion => "HYCEL-INPUT-003",
+                InputBindingsErrorKind::InvalidBinding => "HYCEL-INPUT-004",
+            };
+            vec![Diagnostic::new(
+                code,
+                Some(input_file),
+                error.path(),
+                error.message(),
+            )]
+        }
     }
 }
 
@@ -1752,6 +1823,55 @@ mod tests {
                 .code,
             "HYCEL-RESOURCE-005"
         );
+    }
+
+    #[test]
+    fn optional_input_bindings_are_validated_as_a_strict_versioned_file() {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static NEXT: AtomicU64 = AtomicU64::new(0);
+        let root = std::env::temp_dir().join(format!(
+            "hycel-input-project-test-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        assert!(super::validate_optional_input_bindings(&root).is_empty());
+
+        let valid = include_bytes!("../../../examples/empty-project/input.json");
+        std::fs::write(root.join("input.json"), valid).unwrap();
+        assert!(super::validate_optional_input_bindings(&root).is_empty());
+
+        std::fs::write(
+            root.join("input.json"),
+            br#"{"schema_version":1,"focus_loss":"release_all","buttons":[],"axes":[],"unknown":true}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            super::validate_optional_input_bindings(&root)[0].code,
+            "HYCEL-INPUT-002"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn input_bindings_symlink_cannot_escape_the_project_root() {
+        use std::os::unix::fs::symlink;
+        let base =
+            std::env::temp_dir().join(format!("hycel-input-symlink-test-{}", std::process::id()));
+        let root = base.join("project");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(
+            base.join("outside.json"),
+            include_bytes!("../../../examples/empty-project/input.json"),
+        )
+        .unwrap();
+        symlink(base.join("outside.json"), root.join("input.json")).unwrap();
+        assert_eq!(
+            super::validate_optional_input_bindings(&root)[0].code,
+            "HYCEL-PROJECT-015"
+        );
+        std::fs::remove_dir_all(base).unwrap();
     }
 
     #[cfg(unix)]
