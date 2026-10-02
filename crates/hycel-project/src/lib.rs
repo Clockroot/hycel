@@ -1835,11 +1835,17 @@ mod tests {
             NEXT.fetch_add(1, Ordering::Relaxed)
         ));
         std::fs::create_dir_all(&root).unwrap();
-        assert!(super::validate_optional_input_bindings(&root).is_empty());
+        assert_eq!(
+            super::validate_optional_input_bindings(&root),
+            Vec::<super::Diagnostic>::new()
+        );
 
         let valid = include_bytes!("../../../examples/empty-project/input.json");
         std::fs::write(root.join("input.json"), valid).unwrap();
-        assert!(super::validate_optional_input_bindings(&root).is_empty());
+        assert_eq!(
+            super::validate_optional_input_bindings(&root),
+            Vec::<super::Diagnostic>::new()
+        );
 
         std::fs::write(
             root.join("input.json"),

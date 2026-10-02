@@ -145,6 +145,7 @@ fn run_smoke() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+            PlatformEvent::Input(_) => EventAction::Continue,
             PlatformEvent::CloseRequested => EventAction::Exit,
         },
     )?;
