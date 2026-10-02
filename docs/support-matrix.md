@@ -17,7 +17,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 ## Graphics backend policy
 
-- Accepted Phase 4 windowing/renderer candidate: Rust `winit 0.30.13` + `wgpu 30.0.1` (Rust 1.87.0 MSRV), recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). They remain isolated spike dependencies, not engine/product dependencies; Phase 4.1 revalidates versions and requirements before adoption.
+- Provisional Phase 4 implementation candidate: `wgpu 30.0.1` + `winit 0.31.0-beta.3` + `pollster 1.0.1`, recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). The beta is pre-release and is not a 1.0 dependency decision. Keep it behind Hycel-owned interfaces; require a stable winit release, dependency re-review, and physical Windows mixed-DPI validation before support claims. The beta remains in an isolated spike until Phase 4.2 adds it to implementation crates.
 - Intended native mapping: Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1 or newer on Linux.
 - OpenGL or CPU/software rendering is **not** part of the 1.0 product fallback promise. The Linux llvmpipe and Windows Basic Render Driver paths were exercised only as hosted-CI feasibility adapters, not as supported end-user fallback modes.
 - The current headless kernel has no renderer. Consequently, no graphics backend is currently supported; backend names above are planned targets only.
@@ -33,7 +33,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 ## CI contract
 
-`.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native CI; keep this table in sync in the same change whenever a row changes. Each row runs formatting, Clippy, tests, and a release build for the listed native target. The Phase 1.5 probe also builds on all six native runners and runs representative hosted Metal, Vulkan, and Direct3D 12 clear/present smokes. These tests do not prove the minimum OS floor or packaged game works.
+`.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native CI; keep this table in sync in the same change whenever a row changes. Each row runs formatting, Clippy, tests, and a release build for the listed native target. The Phase 1.5 stable probe and Phase 4.1 winit-beta probe build on all six native runners; the stable probe has hosted Metal, Vulkan, and Direct3D 12 clear/present smokes, while beta validation currently includes an Apple M4/Metal smoke. These tests do not prove Windows mixed-DPI behavior, the minimum OS floors, or packaged-game compatibility.
 
 Phase 4/8 must add real runtime and packaging checks. Minimum-OS versions that are newer than the hosted runner's compatibility surface require dedicated manual/device validation and recorded evidence before status can change to supported.
 

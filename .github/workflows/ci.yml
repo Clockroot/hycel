@@ -71,8 +71,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.87.0
-      - name: Test with declared MSRV 1.87.0
+      - name: Test workspace with declared MSRV 1.87.0
         run: cargo test --workspace --all-targets --locked
+      - name: Test winit beta spike with declared MSRV
+        run: cargo test --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --all-targets --locked
 
   renderer-spike:
     name: Renderer/window/input feasibility (${{ matrix.name }})
@@ -122,6 +124,14 @@ jobs:
         run: cargo test --manifest-path spikes/phase-1.5-renderer/Cargo.toml --all-targets --locked
       - name: Build renderer spike for native target
         run: cargo build --manifest-path spikes/phase-1.5-renderer/Cargo.toml --release --target ${{ matrix.target }} --locked
+      - name: Check beta spike formatting
+        run: cargo fmt --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml -- --check
+      - name: Clippy winit beta spike
+        run: cargo clippy --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Test winit beta spike
+        run: cargo test --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --all-targets --locked
+      - name: Build winit beta spike for native target
+        run: cargo build --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --release --target ${{ matrix.target }} --locked
       - name: Install software Vulkan and Xvfb
         if: runner.os == 'Linux' && matrix.smoke
         run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers libxkbcommon0 libxkbcommon-x11-0 xvfb
@@ -134,6 +144,15 @@ jobs:
           else
             cargo run --manifest-path spikes/phase-1.5-renderer/Cargo.toml --release --locked -- --smoke
           fi
+      - name: Run winit beta native presentation smoke
+        if: matrix.smoke
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run -a cargo run --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --release --locked -- --smoke
+          else
+            cargo run --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --release --locked -- --smoke
+          fi
 
   dependency-audit:
     name: Dependency, license, and source audit
@@ -144,10 +163,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Install pinned cargo-deny
         run: cargo install cargo-deny --version 0.20.2 --locked
-      - name: Audit workspace and renderer spike
+      - name: Audit workspace and renderer spikes
         run: |
           cargo deny check
           cargo deny --manifest-path spikes/phase-1.5-renderer/Cargo.toml check
+          cargo deny --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml check
       - name: Generate machine-readable dependency/license inventory
         run: |
           mkdir -p target
@@ -155,6 +175,8 @@ jobs:
           cargo deny list --format json > target/license-inventory.json
           cargo metadata --manifest-path spikes/phase-1.5-renderer/Cargo.toml --format-version 1 --locked > target/renderer-spike-metadata.json
           cargo deny --manifest-path spikes/phase-1.5-renderer/Cargo.toml list --format json > target/renderer-spike-license-inventory.json
+          cargo metadata --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --format-version 1 --locked > target/winit-beta-spike-metadata.json
+          cargo deny --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml list --format json > target/winit-beta-spike-license-inventory.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:

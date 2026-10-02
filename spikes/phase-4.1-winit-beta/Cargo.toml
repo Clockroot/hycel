@@ -1,0 +1,14 @@
+[package]
+name = "hycel-winit-beta-spike"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87.0"
+publish = false
+license = "Apache-2.0"
+
+[workspace]
+
+[dependencies]
+pollster = "=1.0.1"
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "parking_lot", "dx12", "metal", "vulkan", "wgsl"] }
+winit = { version = "=0.31.0-beta.3", default-features = false, features = ["x11", "wayland", "wayland-dlopen"] }
