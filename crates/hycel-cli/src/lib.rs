@@ -4260,6 +4260,7 @@ mod tests {
             ),
         ];
         for (scene_id, file_name, expected_svg) in cases {
+            let expected_svg = expected_svg.replace("\r\n", "\n");
             let output_path = directory.join(file_name);
             let output = execute(args([
                 "screenshot",
