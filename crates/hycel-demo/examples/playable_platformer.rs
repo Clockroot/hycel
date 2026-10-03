@@ -2056,7 +2056,7 @@ mod tests {
     };
     use hycel_audio::AudioClip;
     use hycel_core::CanonicalState;
-    use hycel_input::{InputBindings, InputEvent, InputMapper, KeyCode};
+    use hycel_input::{InputBindings, InputEvent, InputMapper, KeyCode, MouseButton};
 
     fn load_sample_content() -> super::Content {
         let root = find_content_root().unwrap();
@@ -2243,6 +2243,25 @@ mod tests {
         assert!(hints[1].contains("J: jump"));
         assert!(hints[1].contains("Backspace: checkpoint"));
         assert!(hints[1].contains("Mouse Right: echo last 120 ticks"));
+
+        let mut mapper = InputMapper::new(bindings);
+        mapper.handle_event(InputEvent::Key {
+            code: KeyCode::KeyH,
+            pressed: true,
+            synthetic: false,
+        });
+        assert_eq!(mapper.frame(0).axis(super::ACTION_MOVE_X), i16::MIN);
+        mapper.handle_event(InputEvent::Key {
+            code: KeyCode::KeyJ,
+            pressed: true,
+            synthetic: false,
+        });
+        assert!(mapper.frame(1).button(super::ACTION_JUMP));
+        mapper.handle_event(InputEvent::MouseButton {
+            button: MouseButton::Right,
+            pressed: true,
+        });
+        assert!(mapper.frame(2).button(super::ACTION_ECHO));
     }
 
     #[test]
