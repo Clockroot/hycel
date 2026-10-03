@@ -108,7 +108,7 @@ This does **not** promise a general-purpose 3D engine, consoles/mobile, multipla
 
 ### Subphases
 
-1. **6.1 — Complete the file-native experience.** Document project structure, engine lifecycle, game-code patterns, schemas, examples, and safe build/test commands for agents that can only read and edit files.
+1. **6.1 — Complete the file-native experience — COMPLETE.** [`agent-interface.md`](agent-interface.md) now has a concrete source-first quickstart, source/project/schema map, tick-driven code guidance, safe bounded Cargo validation commands, a realistic file-only starter task, and an explicit warning that the current CLI does not execute project code.
 2. **6.2 — Stabilize CLI contracts.** Implement `run`, `test`, `replay`, `screenshot`, and the remaining release commands. Version JSON schemas; define stable diagnostics, exit codes, pagination, limits, and compatibility policy.
 3. **6.3 — Add safe resource-level operations.** Expose typed project/scene inspect and validated edit services. Mutations must be scoped, previewable/diffable, atomic, and recoverable; inspection is read-only by default.
 4. **6.4 — Add protocol adapters.** Implement MCP only as an adapter over shared application services; keep CLI and test harness first-class. Protocol failure must not affect game execution or project data.
