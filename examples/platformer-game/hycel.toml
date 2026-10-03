@@ -1,0 +1,20 @@
+format_version = 1
+
+[project]
+id = "00000000-0000-4000-8000-000000000002"
+name = "Hycel Platformer Vertical Slice"
+
+[engine]
+min_version = "0.1.0"
+max_version_exclusive = "0.2.0"
+
+[build]
+default_profile = "development"
+
+[build.profiles.development]
+optimization = 0
+debug_info = true
+
+[build.profiles.release]
+optimization = 3
+debug_info = false

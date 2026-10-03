@@ -65,8 +65,12 @@ jobs:
         run: cargo clippy --workspace --all-targets --target ${{ matrix.target }} --locked -- -D warnings
       - name: Tests
         run: cargo test --workspace --all-targets --target ${{ matrix.target }} --locked
+      - name: Validate windowed platformer project fixture
+        run: cargo run -p hycel-cli --locked -- check examples/platformer-game --json
       - name: Native release build
         run: cargo build --release --workspace --target ${{ matrix.target }} --locked
+      - name: Build windowed platformer example
+        run: cargo build --release -p hycel-demo --example playable_platformer --target ${{ matrix.target }} --locked
       - name: Run CPU performance baseline
         run: cargo run -p hycel-demo --example performance_baseline --release --target ${{ matrix.target }} --locked
       - uses: actions/upload-artifact@v7

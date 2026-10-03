@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "focus_loss": "release_all",
+  "buttons": [
+    {
+      "action_id": 1,
+      "name": "jump",
+      "controls": [{ "kind": "key", "code": "Space" }]
+    },
+    {
+      "action_id": 2,
+      "name": "restart",
+      "controls": [{ "kind": "key", "code": "KeyR" }]
+    }
+  ],
+  "axes": [
+    {
+      "action_id": 0,
+      "name": "move_x",
+      "negative": [
+        { "kind": "key", "code": "KeyA" },
+        { "kind": "key", "code": "ArrowLeft" }
+      ],
+      "positive": [
+        { "kind": "key", "code": "KeyD" },
+        { "kind": "key", "code": "ArrowRight" }
+      ]
+    }
+  ]
+}

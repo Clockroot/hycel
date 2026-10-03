@@ -2,7 +2,7 @@
 
 **A small, deterministic 2D game engine designed to be built and tested by people and AI agents.**
 
-Hycel is pre-alpha: its workspace now includes a deterministic simulation kernel, early native window/sprite/input paths, project tools, and a headless platformer prototype. Those pieces are not yet integrated into a complete playable game, and no gameplay API or project format is stable. The first release is intentionally a narrow, reliable 2D engine—not a broad 3D editor.
+Hycel is pre-alpha: its workspace includes a deterministic simulation kernel, early native window/sprite/input paths, project tools, and a small windowed two-room platformer vertical slice. The sample is an integration proof, not a release-quality game, and no gameplay API or project format is stable. The first release is intentionally a narrow, reliable 2D engine—not a broad 3D editor.
 
 ## Why Hycel
 
@@ -23,8 +23,8 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-audio`: best-effort Kira-backed one-shot effects and looping music with bounded encoded inputs, silent fallback, and bounded asynchronous diagnostics; see [ADR 0004](docs/adr/0004-audio-backend.md).
 - `hycel-save`: strict, bounded per-user progress saves with atomic replacement, one backup, and explicit recovery; see [ADR 0005](docs/adr/0005-progress-save.md).
 - `hycel-cli`: `hycel new`, `check`, and read-only `inspect` foundations with versioned JSON envelopes and stable exit codes.
-- `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing; its release-mode performance harness records repeatable CPU workloads. It is a proof of direction, not a stable physics API or rendered game.
-- `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. This is not yet integrated with the headless demo or an asset decoder; see [`docs/rendering.md`](docs/rendering.md).
+- `hycel-demo`: a headless movement prototype and a windowed platformer vertical slice composing tick-indexed input, Rapier physics, authored animation/scenes, best-effort audio, and local progress saves. The release-mode performance harness records repeatable CPU workloads. The vertical slice is documented in [`docs/platformer-vertical-slice.md`](docs/platformer-vertical-slice.md).
+- `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. Image decoding remains outside the renderer; see [`docs/rendering.md`](docs/rendering.md).
 - `hycel-input`: strict versioned named keyboard/mouse actions, tick-indexed input frames, and replayable action edges; see [`docs/input.md`](docs/input.md).
 - `hycel-physics`: early Rapier2D adapter with fixed-tick box bodies, bounded fixed-point conversion, and sorted contact transitions; see [`docs/adr/0003-physics-backend.md`](docs/adr/0003-physics-backend.md).
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
@@ -35,11 +35,12 @@ Game projects should be inspectable and testable without clicking through an edi
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
 - Phased path to stable 1.0: [`docs/roadmap.md`](docs/roadmap.md); baseline methodology and limits are in [`docs/performance-baselines.md`](docs/performance-baselines.md).
 
-Run the current kernel and project CLI:
+Run the headless demo, project CLI, and windowed vertical slice (from the repository root):
 
 ```sh
 cargo run -p hycel-demo
 cargo run -p hycel-demo --example performance_baseline --release
+cargo run -p hycel-demo --example playable_platformer
 cargo run -p hycel-cli -- --help
 cargo run -p hycel-cli -- new ./MyGame --name "My Game"
 cargo run -p hycel-cli -- check ./MyGame --json
@@ -48,7 +49,7 @@ cargo test --workspace
 
 CLI command and JSON contracts are documented in [`docs/cli.md`](docs/cli.md).
 
-Run it with `cargo run -p hycel-demo`; it reports a repeatable 90-tick platformer movement/jump/landing scenario.
+The windowed sample opens on a title overlay. Press Space to start; hold A/D or the arrow keys to move, tap Space to jump, and press R to respawn/replay. Check `examples/platformer-game` with `hycel-cli` before editing its strict project data.
 
 ## Status and compatibility
 
