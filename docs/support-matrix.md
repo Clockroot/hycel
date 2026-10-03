@@ -6,12 +6,12 @@ This is the planned 1.0 target contract selected in Phase 1.2. A row is **not ye
 
 | OS family | Minimum supported OS | CPU architecture | Rust target triple | GitHub Actions runner | Planned graphics backend | Status |
 |---|---|---|---|---|---|---|
-| macOS | macOS 14 Sonoma | x86-64 | `x86_64-apple-darwin` | `macos-15-intel` | Metal | Experimental; native CI/build, no runtime smoke yet |
-| macOS | macOS 14 Sonoma | ARM64 | `aarch64-apple-darwin` | `macos-15` | Metal | Experimental; native CI and Metal clear/present smoke on hosted macOS 15 |
-| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | x86-64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04` | Vulkan 1.1+ | Experimental; native CI and llvmpipe/Vulkan clear/present smoke under Xvfb |
-| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | ARM64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Vulkan 1.1+ | Experimental; native CI/build, no runtime smoke yet |
-| Windows | Windows 11 24H2 (build 26100)+ | x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` (native x64) | Direct3D 12 | Experimental; native CI and Microsoft Basic Render Driver/D3D12 clear/present smoke; not verified on client Windows 11 |
-| Windows | Windows 11 24H2 (build 26100)+ | ARM64 | `aarch64-pc-windows-msvc` | `windows-11-arm` | Direct3D 12 | Experimental; native CI/build, no runtime smoke yet |
+| macOS | macOS 14 Sonoma | x86-64 | `x86_64-apple-darwin` | `macos-15-intel` | Metal | Experimental; native CI/build and target-specific Courier bundle packaging/tests in [run 37133176334](https://github.com/Clockroot/hycel/actions/runs/37133176334); no presentation smoke yet |
+| macOS | macOS 14 Sonoma | ARM64 | `aarch64-apple-darwin` | `macos-15` | Metal | Experimental; native CI, Metal clear/present and editor smoke, and target-specific Courier bundle packaging/tests in [run 37133176334](https://github.com/Clockroot/hycel/actions/runs/37133176334) |
+| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | x86-64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04` | Vulkan 1.1+ | Experimental; native CI, llvmpipe/Vulkan and editor smoke under Xvfb, and target-specific Courier bundle packaging/tests in [run 37133176334](https://github.com/Clockroot/hycel/actions/runs/37133176334) |
+| Linux | Ubuntu 24.04 LTS baseline; glibc 2.39+ | ARM64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm` | Vulkan 1.1+ | Experimental; native CI/build and target-specific Courier bundle packaging/tests in [run 37133176334](https://github.com/Clockroot/hycel/actions/runs/37133176334); no presentation smoke yet |
+| Windows | Windows 11 24H2 (build 26100)+ | x86-64 | `x86_64-pc-windows-msvc` | `windows-2025` (native x64) | Direct3D 12 | Experimental; native CI, Basic Render Driver/D3D12 and editor smoke, and target-specific Courier bundle packaging/tests in [run 37133176334](https://github.com/Clockroot/hycel/actions/runs/37133176334); not verified on client Windows 11 |
+| Windows | Windows 11 24H2 (build 26100)+ | ARM64 | `aarch64-pc-windows-msvc` | `windows-11-arm` | Direct3D 12 | Experimental; native CI/build and target-specific Courier bundle packaging/tests in [run 37133176334](https://github.com/Clockroot/hycel/actions/runs/37133176334); no presentation smoke yet |
 
 Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-only restriction. Other distributions may work if they meet the ABI, driver, and dependency requirements, but are not individually certified by the baseline matrix.
 
@@ -35,7 +35,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 `.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native CI; keep this table in sync in the same change whenever a row changes. Each row runs formatting, Clippy, tests, and a release build for the listed native target. The Phase 1.5 stable probe and Phase 4.1 winit-beta probe build on all six native runners. The beta probe also passed hosted clear/present smokes on Linux x86-64 (Vulkan), macOS ARM64 (Metal), and Windows x86-64 (D3D12) in [CI run 36945427870](https://github.com/aaf2tbz/hycel/actions/runs/36945427870), plus a local Apple M4/Metal smoke. The same run exercised the Hycel window lifecycle on Linux x86-64, macOS ARM64, and Windows x86-64. The hosted/software adapters do not prove physical Windows mixed-DPI behavior, the minimum OS floors, native-runtime coverage on the other target rows, or packaged-game compatibility.
 
-Later release-hardening (Phases 8–10) must add real runtime and packaging checks. Minimum-OS versions that are newer than the hosted runner's compatibility surface require dedicated manual/device validation and recorded evidence before a target status can change to supported. These remain support-certification requirements, not blockers for completing the current Phases 2–5 implementation work.
+Hosted CI now builds, tests, and packages the Courier bundle on all six native rows; representative presentation/editor smokes run on Linux x86-64, macOS ARM64, and Windows x86-64. Clean-OS install/launch/uninstall, physical-device/graphics behavior, and minimum-OS versions newer than each hosted runner's compatibility surface still require dedicated manual/device validation and recorded evidence before a target status can change to supported.
 
 ## Source references
 
