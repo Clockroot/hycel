@@ -9,5 +9,10 @@ license.workspace = true
 [dependencies]
 hycel-core = { path = "../hycel-core", version = "0.1.0" }
 
+[dev-dependencies]
+hycel-assets = { path = "../hycel-assets", version = "0.1.0" }
+hycel-input = { path = "../hycel-input", version = "0.1.0" }
+hycel-project = { path = "../hycel-project", version = "0.1.0" }
+
 [lints]
 workspace = true

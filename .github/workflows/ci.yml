@@ -67,6 +67,14 @@ jobs:
         run: cargo test --workspace --all-targets --target ${{ matrix.target }} --locked
       - name: Native release build
         run: cargo build --release --workspace --target ${{ matrix.target }} --locked
+      - name: Run CPU performance baseline
+        run: cargo run -p hycel-demo --example performance_baseline --release --target ${{ matrix.target }} --locked
+      - uses: actions/upload-artifact@v7
+        with:
+          name: performance-baseline-${{ matrix.target }}
+          path: target/performance-baseline-cpu.md
+          if-no-files-found: error
+          retention-days: 30
 
   msrv:
     name: Minimum supported Rust version

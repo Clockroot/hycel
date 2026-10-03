@@ -821,7 +821,10 @@ dependencies = [
 name = "hycel-demo"
 version = "0.1.0"
 dependencies = [
+ "hycel-assets",
  "hycel-core",
+ "hycel-input",
+ "hycel-project",
 ]
 
 [[package]]

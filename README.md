@@ -23,7 +23,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-audio`: best-effort Kira-backed one-shot effects and looping music with bounded encoded inputs, silent fallback, and bounded asynchronous diagnostics; see [ADR 0004](docs/adr/0004-audio-backend.md).
 - `hycel-save`: strict, bounded per-user progress saves with atomic replacement, one backup, and explicit recovery; see [ADR 0005](docs/adr/0005-progress-save.md).
 - `hycel-cli`: `hycel new`, `check`, and read-only `inspect` foundations with versioned JSON envelopes and stable exit codes.
-- `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
+- `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing; its release-mode performance harness records repeatable CPU workloads. It is a proof of direction, not a stable physics API or rendered game.
 - `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. This is not yet integrated with the headless demo or an asset decoder; see [`docs/rendering.md`](docs/rendering.md).
 - `hycel-input`: strict versioned named keyboard/mouse actions, tick-indexed input frames, and replayable action edges; see [`docs/input.md`](docs/input.md).
 - `hycel-physics`: early Rapier2D adapter with fixed-tick box bodies, bounded fixed-point conversion, and sorted contact transitions; see [`docs/adr/0003-physics-backend.md`](docs/adr/0003-physics-backend.md).
@@ -33,12 +33,13 @@ Game projects should be inspectable and testable without clicking through an edi
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
-- Phased path to stable 1.0: [`docs/roadmap.md`](docs/roadmap.md).
+- Phased path to stable 1.0: [`docs/roadmap.md`](docs/roadmap.md); baseline methodology and limits are in [`docs/performance-baselines.md`](docs/performance-baselines.md).
 
 Run the current kernel and project CLI:
 
 ```sh
 cargo run -p hycel-demo
+cargo run -p hycel-demo --example performance_baseline --release
 cargo run -p hycel-cli -- --help
 cargo run -p hycel-cli -- new ./MyGame --name "My Game"
 cargo run -p hycel-cli -- check ./MyGame --json
