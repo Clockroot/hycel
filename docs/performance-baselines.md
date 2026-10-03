@@ -40,7 +40,15 @@ The native render smoke additionally submits 100, 1,000, and 5,000 sprites after
 | 1,000 | 16,634.25 | 16,943.33 |
 | 5,000 | 16,697.33 | 17,182.38 |
 
-The approximately 16.7 ms floor is consistent with display pacing and must not be interpreted as the renderer's maximum capacity. Hosted render smoke adapters are software/virtual feasibility environments; their samples are diagnostic only and do not certify physical GPU performance, minimum OS versions, packaging, or support. The smoke asserts successful presentation, not pixel-perfect output.
+The approximately 16.7 ms floor is consistent with display pacing and must not be interpreted as the renderer's maximum capacity. Hosted render smoke adapters are software/virtual feasibility environments; their samples are diagnostic only and do not certify physical GPU performance, minimum OS versions, packaging, or support. The smoke asserts successful presentation, not pixel-perfect output. Hosted CI run [37094437531](https://github.com/Clockroot/hycel/actions/runs/37094437531) recorded complete 20-sample workloads on the Linux x86-64 llvmpipe/Vulkan adapter, macOS ARM64 Apple Paravirtual/Metal adapter, and Windows x86-64 Microsoft Basic Render Driver/D3D12 adapter:
+
+| Hosted smoke adapter | 100 sprites median/P95 (µs) | 1,000 sprites median/P95 (µs) | 5,000 sprites median/P95 (µs) |
+|---|---:|---:|---:|
+| Linux x86-64, llvmpipe/Vulkan | 603.54 / 665.28 | 710.19 / 766.20 | 1,728.97 / 1,769.16 |
+| macOS ARM64, Apple Paravirtual/Metal | 16,827.50 / 19,357.21 | 16,652.96 / 19,877.92 | 18,287.08 / 22,876.46 |
+| Windows x86-64, Microsoft Basic Render Driver/D3D12 | 15,844.20 / 16,096.20 | 31,499.30 / 33,333.40 | 142,493.30 / 163,833.30 |
+
+These are hosted software/virtual adapters, captured from one CI run. They are feasibility/diagnostic samples, not comparisons across device classes or user hardware performance claims. Each CPU-side matrix target also uploaded a Markdown report as a run artifact.
 
 ## Interpretation and limits
 
