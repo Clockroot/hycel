@@ -17,7 +17,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 ## Graphics backend policy
 
-- Provisional Phase 4 implementation candidate: `wgpu 30.0.1` + `winit 0.31.0-beta.3` + `pollster 1.0.1`, recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). The beta is pre-release and is not a 1.0 dependency decision. It is now used by `hycel-platform` behind Hycel-owned interfaces; the isolated Phase 4.1 spike remains comparison evidence. Require a stable winit release, dependency re-review, and physical Windows mixed-DPI validation before support claims.
+- Provisional Phase 4 implementation candidate: `wgpu 30.0.1` + `winit 0.31.0-beta.3` + `pollster 1.0.1`, recorded in [`adr/0001-windowing-and-renderer.md`](adr/0001-windowing-and-renderer.md). The beta is pre-release and is not a 1.0 dependency decision. It is now used by `hycel-platform` behind Hycel-owned interfaces; the isolated Phase 4.1 spike remains comparison evidence. Stable winit adoption, dependency re-review, and physical Windows mixed-DPI validation are deferred release-certification checks before support claims; they do not block completion of the current runtime implementation milestone.
 - Intended native mapping: Metal on macOS, Direct3D 12 on Windows, and Vulkan 1.1 or newer on Linux.
 - OpenGL or CPU/software rendering is **not** part of the 1.0 product fallback promise. The Linux llvmpipe and Windows Basic Render Driver paths were exercised only as hosted-CI feasibility adapters, not as supported end-user fallback modes.
 - The current headless kernel has no renderer. Consequently, no graphics backend is currently supported; backend names above are planned targets only.
@@ -35,7 +35,7 @@ Linux support is based on the glibc ABI and Vulkan requirement, not an Ubuntu-on
 
 `.github/workflows/ci.yml` contains the executable six-row OS/architecture matrix. Its runner/target rows are canonical for native CI; keep this table in sync in the same change whenever a row changes. Each row runs formatting, Clippy, tests, and a release build for the listed native target. The Phase 1.5 stable probe and Phase 4.1 winit-beta probe build on all six native runners. The beta probe also passed hosted clear/present smokes on Linux x86-64 (Vulkan), macOS ARM64 (Metal), and Windows x86-64 (D3D12) in [CI run 36945427870](https://github.com/aaf2tbz/hycel/actions/runs/36945427870), plus a local Apple M4/Metal smoke. The same run exercised the Hycel window lifecycle on Linux x86-64, macOS ARM64, and Windows x86-64. The hosted/software adapters do not prove physical Windows mixed-DPI behavior, the minimum OS floors, native-runtime coverage on the other target rows, or packaged-game compatibility.
 
-Phase 4/8 must add real runtime and packaging checks. Minimum-OS versions that are newer than the hosted runner's compatibility surface require dedicated manual/device validation and recorded evidence before status can change to supported.
+Later release-hardening (Phases 8–10) must add real runtime and packaging checks. Minimum-OS versions that are newer than the hosted runner's compatibility surface require dedicated manual/device validation and recorded evidence before a target status can change to supported. These remain support-certification requirements, not blockers for completing the current Phases 2–5 implementation work.
 
 ## Source references
 
