@@ -322,7 +322,7 @@ fn close_process(mut child: Child, stdin: ChildStdin, mut stdout: BufReader<Chil
     drop(stdin);
     let mut remainder = Vec::new();
     stdout.read_to_end(&mut remainder).unwrap();
-    assert!(remainder.is_empty());
+    assert_eq!(remainder.as_slice(), &[] as &[u8]);
     let mut stderr = String::new();
     child
         .stderr
@@ -331,7 +331,7 @@ fn close_process(mut child: Child, stdin: ChildStdin, mut stdout: BufReader<Chil
         .read_to_string(&mut stderr)
         .unwrap();
     assert!(child.wait().unwrap().success(), "{stderr}");
-    assert!(stderr.is_empty(), "unexpected stderr: {stderr}");
+    assert_eq!(stderr.as_str(), "", "unexpected stderr: {stderr}");
 }
 
 fn temporary_project() -> std::path::PathBuf {

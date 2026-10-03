@@ -2067,7 +2067,7 @@ mod tests {
         let near = super::night_sky_sprites(0.0, 0.38);
         let farther = super::night_sky_sprites(10.0, 0.38);
         assert_eq!(near.len(), farther.len());
-        assert!(!near.is_empty());
+        assert_ne!(near.as_slice(), &[] as &[hycel_render::Sprite]);
         assert!(near.iter().all(|sprite| sprite.layer < 0));
         assert!(near.iter().all(|sprite| {
             sprite.size[0] > 0.0
@@ -2227,7 +2227,7 @@ mod tests {
             restored.room.collectible_collected,
             "the current room's bell chime should remain collected after loading"
         );
-        assert!(!game.animation.texture_id().is_empty());
+        assert_ne!(game.animation.texture_id(), "");
     }
 
     #[test]

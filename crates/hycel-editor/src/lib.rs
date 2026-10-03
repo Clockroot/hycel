@@ -1755,7 +1755,7 @@ mod tests {
         let resource = &editor.resources()[resource_index];
         let status = editor.inspect_resource_import(resource_index).unwrap();
         assert_eq!(status.source_sha256.len(), 64);
-        assert!(status.records.is_empty());
+        assert_eq!(status.records.as_slice(), &[] as &[_]);
 
         let mut registry = ResourceRegistry::default();
         registry
@@ -1838,13 +1838,13 @@ mod tests {
         fs::write(&scene_path, serde_json::to_vec_pretty(&document).unwrap()).unwrap();
         let original = fs::read(&scene_path).unwrap();
         let mut editor = EditorSession::open(&project).unwrap();
-        assert!(!editor.project_name().is_empty());
+        assert_ne!(editor.project_name(), "");
         assert_eq!(editor.resource_count(), 0);
         assert_eq!(editor.selected_entity().unwrap().name, "Player");
         editor.stage_move([25, -10]).unwrap();
         assert!(editor.is_dirty());
         let preview = editor.preview().unwrap();
-        assert!(!preview.diff.is_empty());
+        assert_ne!(preview.diff, "");
         assert_eq!(fs::read(&scene_path).unwrap(), original);
         let receipt = editor.apply_preview().unwrap();
         assert_ne!(receipt.original_sha256, receipt.candidate_sha256);
@@ -1870,7 +1870,10 @@ mod tests {
             .unwrap();
         editor.preview().unwrap();
         editor.apply_preview().unwrap();
-        assert!(editor.selected_entity().unwrap().tags.is_empty());
+        assert_eq!(
+            editor.selected_entity().unwrap().tags.as_slice(),
+            &[] as &[String]
+        );
         assert!(
             editor
                 .stage_toggle_entity_tag("NOT-LOWERCASE".to_owned())
@@ -1958,7 +1961,10 @@ mod tests {
         editor.stage_remove_component("hycel.animation").unwrap();
         assert!(editor.preview().unwrap().diff.contains("hycel.animation"));
         editor.apply_preview().unwrap();
-        assert!(editor.selected_entity().unwrap().component_types.is_empty());
+        assert_eq!(
+            editor.selected_entity().unwrap().component_types.as_slice(),
+            &[] as &[String]
+        );
         assert!(editor.select_entity(&entity_id));
         editor.stage_delete_entity().unwrap();
         assert!(editor.preview().unwrap().diff.contains("Player"));

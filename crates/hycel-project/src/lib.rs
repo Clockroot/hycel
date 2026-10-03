@@ -2202,7 +2202,7 @@ mod tests {
                 &components,
             )
             .unwrap();
-        assert!(removed_component.entities()[0].components().is_empty());
+        assert_eq!(removed_component.entities()[0].components(), &[] as &[_]);
 
         let hierarchy = br#"{"schema_version":2,"id":"11000000-0000-4000-8000-000000000001","name":"Hierarchy","entities":[{"id":"21000000-0000-4000-8000-000000000001","name":"Root","tags":[]},{"id":"21000000-0000-4000-8000-000000000002","name":"Child","tags":[],"parent":"21000000-0000-4000-8000-000000000001"}]}"#;
         let hierarchy = SceneDocument::parse_json(hierarchy, "scenes/hierarchy.json").unwrap();
