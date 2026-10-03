@@ -20,7 +20,9 @@ use hycel_audio::{AudioClip, AudioService, AudioStatus, PlaybackOutcome};
 use hycel_core::{
     CanonicalState, CanonicalWriter, FixedClock, FrameAdvance, Replay, SimScalar, TimeScale, Vec2,
 };
-use hycel_input::{ActionEventTracker, ButtonActionEventKind, InputBindings, InputMapper};
+use hycel_input::{
+    ActionEventTracker, ButtonActionEventKind, InputBindings, InputControl, InputMapper, KeyCode,
+};
 use hycel_physics::{BodyId, BodyKind, BoxBody, PhysicsConfig, PhysicsWorld};
 use hycel_platform::{
     EventAction, PlatformEvent, SurfaceSize, WindowConfig, WindowHandle, run_window,
@@ -1260,7 +1262,11 @@ impl GameHost {
             center: [center[0], 0.38],
             zoom: 2.5,
         };
-        let mut lines = controls_hint(scene.name(), !self.game.room.pressure_plates.is_empty());
+        let mut lines = controls_hint(
+            scene.name(),
+            !self.game.room.pressure_plates.is_empty(),
+            &self.bindings,
+        );
         lines.push(self.audio_note.clone());
         if self.game.room.gust.is_some() {
             lines.push(gust_hint().to_owned());
@@ -1425,14 +1431,74 @@ fn runtime_debug_snapshot(
     }))
 }
 
-fn controls_hint(scene_name: &str, has_echo_puzzle: bool) -> Vec<String> {
-    let mut lines = vec![format!("{scene_name} | A/D or arrows: move | Space: jump")];
+fn controls_hint(scene_name: &str, has_echo_puzzle: bool, bindings: &InputBindings) -> Vec<String> {
+    let (negative, positive) = bindings
+        .axes()
+        .iter()
+        .find(|binding| binding.action_id() == ACTION_MOVE_X)
+        .map_or_else(
+            || ("Unbound".to_owned(), "Unbound".to_owned()),
+            |binding| {
+                (
+                    format_controls(binding.negative_controls()),
+                    format_controls(binding.positive_controls()),
+                )
+            },
+        );
+    let jump = action_controls(bindings, ACTION_JUMP);
+    let restart = action_controls(bindings, ACTION_RESTART);
+    let mut lines = vec![format!("{scene_name} | Move: {negative} / {positive}")];
     if has_echo_puzzle {
-        lines.push("E: echo last 120 ticks | R: checkpoint".to_owned());
+        let echo = action_controls(bindings, ACTION_ECHO);
+        lines.push(format!(
+            "{jump}: jump | {restart}: checkpoint | {echo}: echo last 120 ticks"
+        ));
     } else {
-        lines.push("R: checkpoint".to_owned());
+        lines.push(format!("{jump}: jump | {restart}: checkpoint"));
     }
     lines
+}
+
+fn action_controls(bindings: &InputBindings, action_id: u16) -> String {
+    bindings
+        .buttons()
+        .iter()
+        .find(|binding| binding.action_id() == action_id)
+        .map_or_else(
+            || "Unbound".to_owned(),
+            |binding| format_controls(binding.controls()),
+        )
+}
+
+fn format_controls(controls: &[InputControl]) -> String {
+    let labels = controls
+        .iter()
+        .map(|control| match control {
+            InputControl::Key { code } => key_label(*code),
+            InputControl::MouseButton { button } => format!("Mouse {button:?}"),
+        })
+        .collect::<Vec<_>>();
+    if labels.is_empty() {
+        "Unbound".to_owned()
+    } else {
+        trim_text(&labels.join(" or "), 28)
+    }
+}
+
+fn key_label(code: KeyCode) -> String {
+    let name = format!("{code:?}");
+    match name.as_str() {
+        "ArrowLeft" => "←".to_owned(),
+        "ArrowRight" => "→".to_owned(),
+        "ArrowUp" => "↑".to_owned(),
+        "ArrowDown" => "↓".to_owned(),
+        "Escape" => "Esc".to_owned(),
+        _ => name
+            .strip_prefix("Key")
+            .or_else(|| name.strip_prefix("Digit"))
+            .unwrap_or(&name)
+            .to_owned(),
+    }
 }
 
 fn visual_pair(values: [i64; 2]) -> Result<[f32; 2], Box<dyn Error>> {
@@ -1990,7 +2056,7 @@ mod tests {
     };
     use hycel_audio::AudioClip;
     use hycel_core::CanonicalState;
-    use hycel_input::{InputEvent, InputMapper, KeyCode};
+    use hycel_input::{InputBindings, InputEvent, InputMapper, KeyCode};
 
     fn load_sample_content() -> super::Content {
         let root = find_content_root().unwrap();
@@ -2140,17 +2206,43 @@ mod tests {
 
     #[test]
     fn gameplay_hud_names_the_supported_keyboard_controls_in_both_room_types() {
-        let introductory = super::controls_hint("Mosslight Roofs", false);
-        assert!(introductory[0].contains("A/D or arrows: move"));
-        assert!(introductory[0].contains("Space: jump"));
+        let content = load_sample_content();
+        let introductory = super::controls_hint("Mosslight Roofs", false, &content.input);
+        assert!(introductory[0].contains("A or ← / D or →"));
+        assert!(introductory[1].contains("Space: jump"));
         assert_eq!(introductory.len(), 2);
         assert!(!introductory.iter().any(|line| line.contains("E: echo")));
 
-        let puzzle = super::controls_hint("Moonworks", true);
-        assert!(puzzle[0].contains("A/D or arrows: move"));
-        assert!(puzzle[0].contains("Space: jump"));
+        let puzzle = super::controls_hint("Moonworks", true, &content.input);
+        assert!(puzzle[0].contains("A or ← / D or →"));
+        assert!(puzzle[1].contains("Space: jump"));
         assert!(puzzle[1].contains("E: echo last 120 ticks"));
         assert!(puzzle[1].contains("R: checkpoint"));
+    }
+
+    #[test]
+    fn courier_control_hud_tracks_accessible_input_remapping() {
+        let bindings = InputBindings::parse_json(
+            br#"{
+                "schema_version": 2,
+                "focus_loss": "release_all",
+                "buttons": [
+                    {"action_id": 1, "name": "jump", "controls": [{"kind": "key", "code": "KeyJ"}]},
+                    {"action_id": 2, "name": "restart", "controls": [{"kind": "key", "code": "Backspace"}]},
+                    {"action_id": 3, "name": "echo", "controls": [{"kind": "mouse_button", "button": "Right"}]}
+                ],
+                "axes": [
+                    {"action_id": 0, "name": "move_x", "negative": [{"kind": "key", "code": "KeyH"}], "positive": [{"kind": "key", "code": "KeyL"}]}
+                ]
+            }"#,
+        )
+        .unwrap();
+
+        let hints = super::controls_hint("Moonworks", true, &bindings);
+        assert!(hints[0].contains("Move: H / L"));
+        assert!(hints[1].contains("J: jump"));
+        assert!(hints[1].contains("Backspace: checkpoint"));
+        assert!(hints[1].contains("Mouse Right: echo last 120 ticks"));
     }
 
     #[test]
