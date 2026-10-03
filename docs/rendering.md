@@ -12,7 +12,7 @@ Call `RgbaImage::new(width, height, pixels)` with tightly packed, top-to-bottom 
 
 Each `Sprite` supplies a texture, center, size, integer layer/order, and linear RGBA tint. The renderer draws in stable `(layer, order, original input position)` order and batches adjacent sprites that use the same texture. Alpha uses the standard source-alpha blend. `render_scene` accepts a world camera, sprite slice, and optional debug-text slice; surfaces that are minimized, occluded, timed out, outdated, or lost return non-fatal `FrameOutcome`s as applicable.
 
-The first slice bounds each image to 64 MiB and aggregate uploaded pixels to 256 MiB per renderer; renderer-local IDs are not deleted/reused. Per-frame sprite/debug counts and debug text length are also bounded. Debug text uses an embedded 5x7 uppercase ASCII font for letters, digits, and a small punctuation set; unsupported glyphs display as `?` and line breaks are supported. This is a diagnostic overlay, not general typography.
+The first slice bounds each image to 64 MiB and aggregate uploaded pixels to 256 MiB per renderer; renderer-local IDs are not deleted/reused. Per-frame sprite/debug counts and debug text length are also bounded. Debug text uses an embedded 5x7 uppercase font for ASCII letters/digits and punctuation plus common dot separators, arrows, brackets, parentheses, dashes, and ellipses; unsupported glyphs display as `?` and line breaks are supported. This is a diagnostic overlay, not general typography.
 
 ## Example
 

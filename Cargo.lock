@@ -800,8 +800,11 @@ dependencies = [
 name = "hycel-cli"
 version = "0.1.0"
 dependencies = [
+ "atomic-write-file",
  "getrandom",
  "hycel-assets",
+ "hycel-core",
+ "hycel-demo",
  "hycel-input",
  "hycel-project",
  "serde",
@@ -831,6 +834,22 @@ dependencies = [
  "hycel-project",
  "hycel-render",
  "hycel-save",
+ "serde_json",
+]
+
+[[package]]
+name = "hycel-editor"
+version = "0.1.0"
+dependencies = [
+ "getrandom",
+ "hycel-assets",
+ "hycel-cli",
+ "hycel-input",
+ "hycel-platform",
+ "hycel-project",
+ "hycel-render",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -839,6 +858,15 @@ version = "0.1.0"
 dependencies = [
  "hycel-core",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "hycel-mcp"
+version = "0.1.0"
+dependencies = [
+ "hycel-cli",
+ "hycel-project",
  "serde_json",
 ]
 

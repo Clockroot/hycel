@@ -5,6 +5,7 @@ members = [
     "crates/hycel-assets",
     "crates/hycel-audio",
     "crates/hycel-cli",
+    "crates/hycel-mcp",
     "crates/hycel-core",
     "crates/hycel-input",
     "crates/hycel-project",
@@ -13,6 +14,7 @@ members = [
     "crates/hycel-render",
     "crates/hycel-save",
     "crates/hycel-demo",
+    "crates/hycel-editor",
 ]
 
 [workspace.package]

@@ -1,0 +1,23 @@
+[package]
+name = "hycel-mcp"
+description = "Bounded stdio MCP adapter for Hycel project services"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "hycel_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hycel-mcp"
+path = "src/main.rs"
+
+[dependencies]
+hycel-cli = { path = "../hycel-cli", version = "0.1.0" }
+hycel-project = { path = "../hycel-project", version = "0.1.0" }
+serde_json.workspace = true
+
+[lints]
+workspace = true

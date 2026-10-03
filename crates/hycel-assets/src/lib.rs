@@ -268,6 +268,8 @@ impl ImportRecord {
 pub enum ReimportReason {
     /// No previous validated import record exists.
     FirstImport,
+    /// The record matches current inputs but its cache contains no derived output.
+    CachedOutputMissing,
     /// The resource's stable UUID changed.
     ResourceIdentityChanged,
     /// Authored source content changed.

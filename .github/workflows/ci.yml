@@ -71,6 +71,16 @@ jobs:
         run: cargo build --release --workspace --target ${{ matrix.target }} --locked
       - name: Build windowed platformer example
         run: cargo build --release -p hycel-demo --example playable_platformer --target ${{ matrix.target }} --locked
+      - name: Build and package Bellglass Courier for this native target
+        run: |
+          cargo run --release --target ${{ matrix.target }} -p hycel-cli --locked -- build examples/bellglass-courier --output target/bellglass-courier --json
+          cargo run --release --target ${{ matrix.target }} -p hycel-cli --locked -- package target/bellglass-courier --output target/bellglass-courier-${{ matrix.target }}.tar --json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bellglass-courier-${{ matrix.target }}
+          path: target/bellglass-courier-${{ matrix.target }}.tar
+          if-no-files-found: error
+          retention-days: 30
       - name: Run CPU performance baseline
         run: cargo run -p hycel-demo --example performance_baseline --release --target ${{ matrix.target }} --locked
       - uses: actions/upload-artifact@v7
@@ -188,6 +198,36 @@ jobs:
           else
             cargo run -p hycel-render --example render_smoke --release --locked
           fi
+      - name: Run Hycel editor 30-frame presentation smoke
+        if: matrix.smoke
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            xvfb-run -a cargo run -p hycel-editor --release --locked -- --smoke examples/platformer-game
+          else
+            cargo run -p hycel-editor --release --locked -- --smoke examples/platformer-game
+          fi
+
+  mcp-official-sdk:
+    name: Official MCP TypeScript SDK interoperability
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Linux audio development headers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Install pinned official MCP SDK
+        run: npm ci --ignore-scripts --prefix tests/mcp-sdk-client
+      - name: Build pinned stdio MCP server
+        run: cargo build -p hycel-mcp --locked
+      - name: Exercise server with official SDK client
+        run: npm run --prefix tests/mcp-sdk-client conformance
+        env:
+          HYCEL_MCP_BINARY: ${{ github.workspace }}/target/debug/hycel-mcp
+          HYCEL_PROJECT_ROOT: ${{ github.workspace }}/examples/bellglass-courier
 
   dependency-audit:
     name: Dependency, license, and source audit

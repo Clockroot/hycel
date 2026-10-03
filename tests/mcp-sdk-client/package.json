@@ -1,0 +1,11 @@
+{
+  "name": "hycel-mcp-sdk-conformance",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "conformance": "node conformance.mjs"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  }
+}

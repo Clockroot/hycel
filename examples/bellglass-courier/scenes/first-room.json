@@ -1,0 +1,135 @@
+{
+  "schema_version": 2,
+  "id": "11000000-0000-4000-8000-000000000001",
+  "name": "Mosslight Roofs",
+  "entities": [
+    {
+      "id": "21000000-0000-4000-8000-000000000001",
+      "name": "Moth Courier",
+      "tags": [
+        "player"
+      ],
+      "transform": {
+        "translation_milli": [
+          -450,
+          400
+        ],
+        "scale_milli": [
+          35,
+          55
+        ]
+      },
+      "components": [
+        {
+          "type": "hycel.animation",
+          "schema_version": 1,
+          "data": {
+            "clip_id": "30000000-0000-4000-8000-000000000002"
+          }
+        }
+      ]
+    },
+    {
+      "id": "21000000-0000-4000-8000-000000000002",
+      "name": "Moonlit Rooftop",
+      "tags": [
+        "platform"
+      ],
+      "transform": {
+        "translation_milli": [
+          0,
+          650
+        ],
+        "scale_milli": [
+          600,
+          100
+        ]
+      }
+    },
+    {
+      "id": "21000000-0000-4000-8000-000000000003",
+      "name": "Checkpoint",
+      "tags": [
+        "checkpoint"
+      ],
+      "transform": {
+        "translation_milli": [
+          -220,
+          495
+        ],
+        "scale_milli": [
+          30,
+          30
+        ]
+      }
+    },
+    {
+      "id": "21000000-0000-4000-8000-000000000006",
+      "name": "First Bell Chime",
+      "tags": [
+        "collectible"
+      ],
+      "transform": {
+        "translation_milli": [
+          -350,
+          350
+        ],
+        "scale_milli": [
+          24,
+          24
+        ]
+      }
+    },
+    {
+      "id": "21000000-0000-4000-8000-000000000004",
+      "name": "Moonpool",
+      "tags": [
+        "hazard"
+      ],
+      "transform": {
+        "translation_milli": [
+          20,
+          530
+        ],
+        "scale_milli": [
+          45,
+          70
+        ]
+      }
+    },
+    {
+      "id": "21000000-0000-4000-8000-000000000008",
+      "name": "Echo Bell Plate",
+      "tags": [
+        "plate"
+      ],
+      "transform": {
+        "translation_milli": [
+          250,
+          510
+        ],
+        "scale_milli": [
+          42,
+          16
+        ]
+      }
+    },
+    {
+      "id": "21000000-0000-4000-8000-000000000005",
+      "name": "To the Moonworks",
+      "tags": [
+        "exit"
+      ],
+      "transform": {
+        "translation_milli": [
+          450,
+          300
+        ],
+        "scale_milli": [
+          30,
+          300
+        ]
+      }
+    }
+  ]
+}

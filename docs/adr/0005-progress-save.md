@@ -10,9 +10,9 @@ The reference platformer needs progress that survives process restart, at minimu
 
 ## Decision
 
-`hycel-save` stores an explicit `GameProgress` record containing the current scene UUID, an optional checkpoint entity UUID, and up to 256 unique completed scene UUIDs. The store binds each file to the stable project/game UUID; the host resolves scene/entity references against authored content before applying the progress. It does not serialize arbitrary components, runtime handles, or physics state.
+`hycel-save` stores an explicit `GameProgress` record containing the current scene UUID, an optional checkpoint entity UUID, up to 256 unique completed scene UUIDs, and up to 256 unique collected item/entity UUIDs. The store binds each file to the stable project/game UUID; the host resolves scene/entity references against authored content before applying the progress. It does not serialize arbitrary components, runtime handles, or physics state.
 
-Save data is strict UTF-8 JSON schema 1, capped at 1 MiB. Unknown and duplicate fields, malformed identifiers, duplicate completion IDs, foreign game IDs, unsupported schema versions, and oversized files fail validation without rewriting the source file. There is no older save schema to migrate; future schema changes require explicit migration code and fixtures. Readers never silently rewrite saves.
+Save data is strict UTF-8 JSON schema 2, capped at 1 MiB. Unknown and duplicate fields, malformed identifiers, duplicate completion/item IDs, foreign game IDs, unsupported schema versions, and oversized files fail validation without rewriting the source file. Schema 1 is explicitly migrated in memory with an empty collected-item list; readers do not rewrite it until the host saves progress. Future schema changes require explicit migration code and fixtures.
 
 `ProgressStore::for_game` uses the current user's local data directory, then `hycel/<game UUID>/progress.json`. It uses `LOCALAPPDATA` (with `USERPROFILE/AppData/Local` fallback) on Windows, `HOME/Library/Application Support` on macOS, and absolute `XDG_DATA_HOME` or `HOME/.local/share` on Linux. Missing or invalid roots produce a typed error. `at_data_root` supports explicit host paths and tests. A game install or project directory is never used as the default save location.
 
@@ -36,4 +36,4 @@ The format reuses existing `serde`/`serde_json`; atomic replacement reuses the e
 
 ## Validation
 
-Unit tests cover strict schema handling, bounds, game-ID/reference validation, atomic write failure behavior, backup rotation, missing/corrupt/future-schema recovery, non-overwrite guarantees, symlink rejection, and stable error codes. Hosted six-target CI is required before marking Phase 5.6 complete.
+Unit tests cover strict schema handling, schema-1 migration, collected-item bounds/uniqueness/round trips, game-ID/reference validation, atomic write failure behavior, backup rotation, missing/corrupt/future-schema recovery, non-overwrite guarantees, symlink rejection, and stable error codes. Hosted six-target CI is required before marking Phase 5.6 complete.

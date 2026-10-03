@@ -15,8 +15,11 @@ name = "hycel"
 path = "src/main.rs"
 
 [dependencies]
+atomic-write-file.workspace = true
 getrandom.workspace = true
 hycel-assets = { path = "../hycel-assets", version = "0.1.0" }
+hycel-core = { path = "../hycel-core", version = "0.1.0" }
+hycel-demo = { path = "../hycel-demo", version = "0.1.0" }
 hycel-input = { path = "../hycel-input", version = "0.1.0" }
 hycel-project = { path = "../hycel-project", version = "0.1.0" }
 serde.workspace = true

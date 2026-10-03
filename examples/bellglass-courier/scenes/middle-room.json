@@ -1,0 +1,81 @@
+{
+  "schema_version": 2,
+  "id": "11000000-0000-4000-8000-000000000004",
+  "name": "Brass Moonworks",
+  "entities": [
+    {
+      "id": "23000000-0000-4000-8000-000000000001",
+      "name": "Moth Courier",
+      "tags": ["player"],
+      "parent": null,
+      "transform": { "translation_milli": [-450, 400], "rotation_units": 0, "scale_milli": [35, 55] },
+      "components": [
+        { "type": "hycel.animation", "schema_version": 1, "data": { "clip_id": "30000000-0000-4000-8000-000000000002" } }
+      ]
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000002",
+      "name": "Ground",
+      "tags": ["platform"],
+      "parent": null,
+      "transform": { "translation_milli": [0, 650], "rotation_units": 0, "scale_milli": [600, 100] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000003",
+      "name": "Moonrail Checkpoint",
+      "tags": ["checkpoint"],
+      "parent": null,
+      "transform": { "translation_milli": [-250, 495], "rotation_units": 0, "scale_milli": [30, 30] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000007",
+      "name": "Bell Chime",
+      "tags": ["collectible"],
+      "parent": null,
+      "transform": { "translation_milli": [-320, 350], "rotation_units": 0, "scale_milli": [24, 24] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000004",
+      "name": "Raised Platform",
+      "tags": ["platform"],
+      "parent": null,
+      "transform": { "translation_milli": [40, 490], "rotation_units": 0, "scale_milli": [120, 35] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000005",
+      "name": "Moonpool",
+      "tags": ["hazard"],
+      "parent": null,
+      "transform": { "translation_milli": [20, 530], "rotation_units": 0, "scale_milli": [45, 70] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000009",
+      "name": "Clockwork Gust",
+      "tags": ["gust"],
+      "parent": null,
+      "transform": { "translation_milli": [140, 420], "rotation_units": 0, "scale_milli": [130, 160] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000008",
+      "name": "Echo Bell Plate",
+      "tags": ["plate"],
+      "parent": null,
+      "transform": { "translation_milli": [250, 510], "rotation_units": 0, "scale_milli": [42, 16] },
+      "components": []
+    },
+    {
+      "id": "23000000-0000-4000-8000-000000000006",
+      "name": "To the Bellglass Spire",
+      "tags": ["exit"],
+      "parent": null,
+      "transform": { "translation_milli": [450, 300], "rotation_units": 0, "scale_milli": [30, 300] },
+      "components": []
+    }
+  ]
+}

@@ -26,7 +26,7 @@ Lower layers never depend on editor UI, agent protocol, or a particular host OS.
 Workspace crate boundaries (split only when boundaries are real; avoid premature micro-crates):
 
 - `hycel-core`: deterministic world/simulation types, fixed-step schedule, stable IDs, math-facing abstractions. No OS, renderer, wall clock, or I/O.
-- `hycel-project`: project manifest, versioned scene/resource schemas, optional strict input-binding validation, bounded parsing, structured validation diagnostics, and explicit per-file scene migration/rollback.
+- `hycel-project`: project manifest, versioned scene/resource schemas, optional strict input-binding validation, bounded parsing, structured validation diagnostics, typed scene create/rename/transform/entity-create/delete/component-upsert/removal and hash-addressed backup-restore operations, and explicit per-file scene migration/rollback.
 - `hycel-assets`: asset identity, import metadata, content/import fingerprinting, and deterministic scene/resource dependency reports including animation-to-texture edges. Actual format decoders and transactional import execution remain future work.
 - `hycel-animation`: project-authored versioned animation clips advanced by explicit simulation ticks, stable project texture UUIDs, deterministic completion/wrap events, and tick-boundary scene-transition requests. It does not depend on renderer-local texture handles.
 - `hycel-audio`: bounded best-effort game audio behind Hycel-owned types. Kira/CPAL devices and asynchronous playback errors stay outside `hycel-core`; missing devices and voice saturation skip playback without affecting gameplay. Audio never contributes to replay hashes.
@@ -36,9 +36,9 @@ Workspace crate boundaries (split only when boundaries are real; avoid premature
 - `hycel-runtime`: game lifecycle, scenes, input frames, event/schedule orchestration.
 - `hycel-render`: 2D renderer behind a backend boundary; ADR 0001 provisionally selects `wgpu 30.0.1` for Phase 4. Its initial API owns surface/device/pipeline objects and draws sorted tinted sprites from bounded RGBA uploads, applies camera/viewport transforms, and provides a bounded screen-space bitmap debug-text overlay. Asset decoding, advanced batching, general typography, and device recovery remain future work; see [`rendering.md`](rendering.md).
 - `hycel-platform`: window, files, clock, input, and OS integration adapters. Its initial single-window lifecycle wraps provisional `winit 0.31.0-beta.3` with Hycel-owned config/events and opaque `WindowHandle`; it maps a documented physical-key/mouse-button subset into `hycel-input` types while keeping native window/event-loop types private.
-- `hycel-cli`: stable human CLI plus versioned JSON output; Phase 3.6 foundations implement `new`, `check`, and `inspect`, while build/test/run/replay/screenshot commands remain later work.
-- `hycel-agent`: optional protocol adapters (MCP and/or JSON-RPC stdio) that call the same typed application services as the CLI. Protocol glue must not contain engine logic.
-- `hycel-editor`: defer until project format and runtime loop work headlessly. Editor operations must round-trip project files without hidden data loss.
+- `hycel-cli`: stable human CLI plus bounded versioned JSON output and reusable application-service functions; implements `new`, `check`, paginated `inspect`, explicit launch, named headless tests, target-specific replay, bounded scene SVG previews, typed scene create/edit preview/apply, and experimental current-host native `build`/USTAR `package`. Run/build never compile or execute project-provided code.
+- `hycel-mcp`: MCP 2025-11-25 stdio adapter pinned to one validated project root. It delegates project checks, tests, replay, and scene-edit operations to the tested CLI/project services, with read-only tools by default and process-start opt-in for writes.
+- `hycel-editor`: keyboard-first native authoring prototype using shared CLI/project services for hierarchy, overview, staged scene edits, resource dependency feedback, diagnostics, and reference-game play/stop. Full editing/runtime-debug/accessibility scope and physical device certification remain open; see [`editor.md`](editor.md).
 
 ## Determinism boundary
 

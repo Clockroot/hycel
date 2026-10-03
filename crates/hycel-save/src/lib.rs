@@ -17,11 +17,13 @@ use atomic_write_file::AtomicWriteFile;
 use serde::{Deserialize, Serialize};
 
 /// Current progress-save schema version.
-pub const SAVE_SCHEMA_VERSION: u32 = 1;
+pub const SAVE_SCHEMA_VERSION: u32 = 2;
 /// Maximum encoded primary or backup file size.
 pub const MAX_SAVE_BYTES: usize = 1024 * 1024;
 /// Maximum number of completed stages recorded in one save.
 pub const MAX_COMPLETED_STAGES: usize = 256;
+/// Maximum number of collected stable item/entity IDs in one save.
+pub const MAX_COLLECTED_ITEMS: usize = 256;
 
 #[cfg(target_os = "windows")]
 fn user_local_data_dir() -> Option<PathBuf> {
@@ -71,6 +73,7 @@ pub struct GameProgress {
     current_scene_id: String,
     checkpoint_entity_id: Option<String>,
     completed_scene_ids: Vec<String>,
+    collected_item_ids: Vec<String>,
 }
 
 impl GameProgress {
@@ -95,6 +98,7 @@ impl GameProgress {
                 completed_scene_ids.sort();
                 completed_scene_ids
             },
+            collected_item_ids: Vec::new(),
         };
         progress.validate()?;
         Ok(progress)
@@ -118,6 +122,27 @@ impl GameProgress {
         &self.completed_scene_ids
     }
 
+    /// Collected stable item/entity UUIDs in canonical sorted order.
+    #[must_use]
+    pub fn collected_item_ids(&self) -> &[String] {
+        &self.collected_item_ids
+    }
+
+    /// Replaces collected item IDs after validating and canonicalizing the bounded list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SaveError::InvalidData`] for malformed, duplicate, or excessive IDs.
+    pub fn with_collected_item_ids(
+        mut self,
+        mut collected_item_ids: Vec<String>,
+    ) -> Result<Self, SaveError> {
+        collected_item_ids.sort();
+        self.collected_item_ids = collected_item_ids;
+        self.validate()?;
+        Ok(self)
+    }
+
     fn validate(&mut self) -> Result<(), SaveError> {
         validate_uuid(&self.current_scene_id).map_err(SaveError::InvalidData)?;
         if let Some(checkpoint_id) = &self.checkpoint_entity_id {
@@ -139,6 +164,24 @@ impl GameProgress {
         {
             return Err(SaveError::InvalidData(
                 "completed scene IDs must be unique".to_owned(),
+            ));
+        }
+        if self.collected_item_ids.len() > MAX_COLLECTED_ITEMS {
+            return Err(SaveError::InvalidData(format!(
+                "collected item count exceeds the {MAX_COLLECTED_ITEMS}-entry limit"
+            )));
+        }
+        for item_id in &self.collected_item_ids {
+            validate_uuid(item_id).map_err(SaveError::InvalidData)?;
+        }
+        self.collected_item_ids.sort();
+        if self
+            .collected_item_ids
+            .windows(2)
+            .any(|pair| pair[0] == pair[1])
+        {
+            return Err(SaveError::InvalidData(
+                "collected item IDs must be unique".to_owned(),
             ));
         }
         Ok(())
@@ -377,6 +420,23 @@ struct GameProgressWire {
     current_scene_id: String,
     checkpoint_entity_id: Option<String>,
     completed_scene_ids: Vec<String>,
+    collected_item_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SaveDocumentV1 {
+    schema_version: u32,
+    game_id: String,
+    progress: GameProgressWireV1,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GameProgressWireV1 {
+    current_scene_id: String,
+    checkpoint_entity_id: Option<String>,
+    completed_scene_ids: Vec<String>,
 }
 
 impl From<GameProgressWire> for GameProgress {
@@ -385,6 +445,7 @@ impl From<GameProgressWire> for GameProgress {
             current_scene_id: value.current_scene_id,
             checkpoint_entity_id: value.checkpoint_entity_id,
             completed_scene_ids: value.completed_scene_ids,
+            collected_item_ids: value.collected_item_ids,
         }
     }
 }
@@ -395,6 +456,7 @@ impl From<&GameProgress> for GameProgressWire {
             current_scene_id: value.current_scene_id.clone(),
             checkpoint_entity_id: value.checkpoint_entity_id.clone(),
             completed_scene_ids: value.completed_scene_ids.clone(),
+            collected_item_ids: value.collected_item_ids.clone(),
         }
     }
 }
@@ -430,18 +492,33 @@ fn decode_document(bytes: &[u8]) -> Result<SaveDocument, SaveError> {
         .ok_or_else(|| {
             SaveError::InvalidData("save schema_version must be a positive integer".to_owned())
         })?;
-    if schema_version != SAVE_SCHEMA_VERSION {
-        return Err(SaveError::UnsupportedSchema(schema_version));
-    }
-    let document: SaveDocument = serde_json::from_slice(bytes)
-        .map_err(|error| SaveError::InvalidData(format!("invalid save document: {error}")))?;
-    if document.schema_version != SAVE_SCHEMA_VERSION {
-        return Err(SaveError::UnsupportedSchema(document.schema_version));
-    }
+    let document = match schema_version {
+        1 => {
+            let legacy: SaveDocumentV1 = serde_json::from_slice(bytes).map_err(|error| {
+                SaveError::InvalidData(format!("invalid save document: {error}"))
+            })?;
+            if legacy.schema_version != 1 {
+                return Err(SaveError::UnsupportedSchema(legacy.schema_version));
+            }
+            SaveDocument {
+                schema_version: SAVE_SCHEMA_VERSION,
+                game_id: legacy.game_id,
+                progress: GameProgressWire {
+                    current_scene_id: legacy.progress.current_scene_id,
+                    checkpoint_entity_id: legacy.progress.checkpoint_entity_id,
+                    completed_scene_ids: legacy.progress.completed_scene_ids,
+                    collected_item_ids: Vec::new(),
+                },
+            }
+        }
+        SAVE_SCHEMA_VERSION => serde_json::from_slice(bytes)
+            .map_err(|error| SaveError::InvalidData(format!("invalid save document: {error}")))?,
+        other => return Err(SaveError::UnsupportedSchema(other)),
+    };
     let mut progress: GameProgress = document.progress.into();
     progress.validate()?;
     Ok(SaveDocument {
-        schema_version: document.schema_version,
+        schema_version: SAVE_SCHEMA_VERSION,
         game_id: document.game_id,
         progress: (&progress).into(),
     })
@@ -694,7 +771,38 @@ mod tests {
         assert!(
             String::from_utf8(encoded)
                 .unwrap()
-                .contains("\"schema_version\": 1")
+                .contains("\"schema_version\": 2")
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn version_one_save_migrates_and_collected_ids_round_trip() {
+        let (store, root) = store();
+        let legacy = format!(
+            r#"{{"schema_version":1,"game_id":"{GAME_ID}","progress":{{"current_scene_id":"{SCENE_A}","checkpoint_entity_id":null,"completed_scene_ids":[]}}}}"#
+        );
+        fs::create_dir_all(store.save_path().parent().unwrap()).unwrap();
+        fs::write(store.save_path(), legacy).unwrap();
+        let migrated = store.load().unwrap();
+        assert!(migrated.collected_item_ids().is_empty());
+        let collected = migrated
+            .with_collected_item_ids(vec!["00000000-0000-4000-8000-000000000004".to_owned()])
+            .unwrap();
+        store.save(&collected).unwrap();
+        assert_eq!(store.load().unwrap(), collected);
+        assert!(
+            fs::read_to_string(store.save_path())
+                .unwrap()
+                .contains("\"schema_version\": 2")
+        );
+        assert!(
+            collected
+                .with_collected_item_ids(vec![
+                    "00000000-0000-4000-8000-000000000004".to_owned(),
+                    "00000000-0000-4000-8000-000000000004".to_owned(),
+                ])
+                .is_err()
         );
         fs::remove_dir_all(root).unwrap();
     }

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "id": "30000000-0000-4000-8000-000000000003",
+  "kind": "texture",
+  "source": "assets/player-frame-2.rgba",
+  "import": {}
+}

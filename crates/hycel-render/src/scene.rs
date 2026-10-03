@@ -402,9 +402,20 @@ fn glyph_rows(character: char) -> [u8; 7] {
         '8' => [14, 17, 17, 14, 17, 17, 14],
         '9' => [14, 17, 17, 15, 1, 1, 14],
         ':' => [0, 4, 4, 0, 4, 4, 0],
+        '|' => [4, 4, 4, 4, 4, 4, 4],
+        '[' => [14, 8, 8, 8, 8, 8, 14],
+        ']' => [14, 2, 2, 2, 2, 2, 14],
+        '(' => [2, 4, 8, 8, 8, 4, 2],
+        ')' => [8, 4, 2, 2, 2, 4, 8],
+        '<' | '←' => [2, 4, 8, 16, 8, 4, 2],
+        '>' | '→' => [8, 4, 2, 1, 2, 4, 8],
+        '↑' => [4, 14, 21, 4, 4, 4, 4],
+        '↓' => [4, 4, 4, 4, 21, 14, 4],
+        '·' => [0, 0, 0, 4, 0, 0, 0],
+        '-' | '—' | '–' => [0, 0, 0, 31, 0, 0, 0],
+        '…' => [0, 0, 0, 0, 0, 21, 21],
         '.' => [0, 0, 0, 0, 0, 4, 4],
         ',' => [0, 0, 0, 0, 4, 4, 8],
-        '-' => [0, 0, 0, 31, 0, 0, 0],
         '+' => [0, 4, 4, 31, 4, 4, 0],
         '/' => [1, 2, 2, 4, 8, 8, 16],
         '_' => [0, 0, 0, 0, 0, 0, 31],
@@ -415,7 +426,7 @@ fn glyph_rows(character: char) -> [u8; 7] {
 
 #[cfg(test)]
 mod tests {
-    use super::{DebugText, RgbaImage, Sprite, TextureId, prepare_scene};
+    use super::{DebugText, RgbaImage, Sprite, TextureId, glyph_rows, prepare_scene};
     use crate::RenderErrorKind;
 
     #[test]
@@ -476,6 +487,22 @@ mod tests {
             prepare_scene(&[sprite], &[]).unwrap_err().kind(),
             RenderErrorKind::InvalidScene
         );
+    }
+
+    #[test]
+    fn navigation_and_separator_glyphs_are_distinct_from_fallback() {
+        let fallback = glyph_rows('?');
+        for character in [
+            '·', '↑', '↓', '←', '→', '—', '–', '…', '|', '[', ']', '(', ')',
+        ] {
+            assert_ne!(
+                glyph_rows(character),
+                fallback,
+                "missing glyph {character:?}"
+            );
+        }
+        assert_eq!(glyph_rows('·'), [0, 0, 0, 4, 0, 0, 0]);
+        assert_eq!(glyph_rows('—'), glyph_rows('-'));
     }
 
     #[test]

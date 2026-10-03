@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "name": "Player Run",
+  "looping": true,
+  "frames": [
+    { "texture_id": "30000000-0000-4000-8000-000000000001", "duration_ticks": 8 },
+    { "texture_id": "30000000-0000-4000-8000-000000000003", "duration_ticks": 8 }
+  ]
+}

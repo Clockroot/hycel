@@ -327,7 +327,7 @@ impl ProjectManifest {
 }
 
 /// Strict version-1 resource descriptor.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ResourceDescriptor {
     schema_version: u32,
@@ -461,6 +461,60 @@ impl ResourceDescriptor {
     pub fn import_settings(&self) -> &BTreeMap<String, Value> {
         &self.import
     }
+
+    /// Applies one typed resource operation and revalidates the complete descriptor.
+    ///
+    /// # Errors
+    ///
+    /// Returns stable diagnostics for an invalid source path, descriptor, or oversized result.
+    pub fn apply_edit(
+        &self,
+        operation: &ResourceEditOperation,
+        file: &str,
+        registry: &ResourceRegistry,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut edited = self.clone();
+        match operation {
+            ResourceEditOperation::RestoreResourceBackup { .. } => {
+                return Err(vec![Diagnostic::new(
+                    "HYCEL-RESOURCE-009",
+                    Some(file),
+                    "operation",
+                    "resource backup restore requires the filesystem-aware authoring service",
+                )]);
+            }
+            ResourceEditOperation::SetSource { source } => {
+                if source.chars().count() > 4096 {
+                    return Err(vec![Diagnostic::new(
+                        "HYCEL-RESOURCE-010",
+                        Some(file),
+                        "source",
+                        "source path must not exceed 4096 characters",
+                    )]);
+                }
+                edited.source.clone_from(source);
+            }
+        }
+        let bytes = serde_json::to_vec_pretty(&edited).map_err(|error| {
+            vec![Diagnostic::new(
+                "HYCEL-RESOURCE-008",
+                Some(file),
+                "$",
+                format!("cannot serialize resource edit: {error}"),
+            )]
+        })?;
+        Self::parse_json_with_registry(&bytes, file, registry)
+    }
+}
+
+/// Typed edits supported by the safe resource-authoring service.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
+pub enum ResourceEditOperation {
+    /// Restore an exact engine-created resource backup identified by its content hash.
+    RestoreResourceBackup { backup_sha256: String },
+    /// Change only the project-relative authored source path, retaining UUID, kind and settings.
+    SetSource { source: String },
 }
 
 /// Registry of resource importer kinds and accepted settings.
@@ -749,7 +803,7 @@ impl ComponentRegistry {
 }
 
 /// Strict versioned scene document with already validated local references.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SceneDocument {
     schema_version: u32,
@@ -759,18 +813,18 @@ pub struct SceneDocument {
 }
 
 /// Scene entity with persistent authoring identity and runtime-neutral data.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SceneEntity {
     id: String,
     name: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Field::is_missing")]
     tags: Field<Vec<String>>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     parent: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "SceneTransform::is_identity")]
     transform: SceneTransform,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     components: Vec<ComponentRecord>,
 }
 
@@ -779,6 +833,24 @@ enum Field<T> {
     #[default]
     Missing,
     Present(T),
+}
+
+impl<T> Field<T> {
+    const fn is_missing(&self) -> bool {
+        matches!(self, Self::Missing)
+    }
+}
+
+impl<T: Serialize> Serialize for Field<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Self::Missing => serializer.serialize_none(),
+            Self::Present(value) => value.serialize(serializer),
+        }
+    }
 }
 
 impl<'de, T> Deserialize<'de> for Field<T>
@@ -793,14 +865,14 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct SceneTransform {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero_translation")]
     translation_milli: [i64; 2],
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero_rotation")]
     rotation_units: u16,
-    #[serde(default = "unit_scale")]
+    #[serde(default = "unit_scale", skip_serializing_if = "is_unit_scale")]
     scale_milli: [i64; 2],
 }
 
@@ -816,6 +888,72 @@ impl Default for SceneTransform {
 
 const fn unit_scale() -> [i64; 2] {
     [1_000, 1_000]
+}
+
+fn is_zero_translation(value: &[i64; 2]) -> bool {
+    *value == [0, 0]
+}
+
+// serde's `skip_serializing_if` requires a reference-accepting predicate.
+#[allow(clippy::trivially_copy_pass_by_ref)]
+const fn is_zero_rotation(value: &u16) -> bool {
+    *value == 0
+}
+
+fn is_unit_scale(value: &[i64; 2]) -> bool {
+    *value == [1_000, 1_000]
+}
+
+/// Typed edits supported by the safe scene-authoring service.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
+pub enum SceneEditOperation {
+    /// Create a new empty scene at the selected project-relative path.
+    /// This operation requires the filesystem-aware CLI/MCP authoring service.
+    CreateScene { scene_id: String, name: String },
+    /// Rename a scene without changing its stable UUID.
+    RenameScene { name: String },
+    /// Rename one entity selected by its stable UUID.
+    RenameEntity { entity_id: String, name: String },
+    /// Replace selected transform channels on one stable entity UUID.
+    SetEntityTransform {
+        entity_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        translation_milli: Option<[i64; 2]>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        rotation_units: Option<u16>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scale_milli: Option<[i64; 2]>,
+    },
+    /// Replace one entity's bounded schema-2 tag list.
+    SetEntityTags {
+        entity_id: String,
+        tags: Vec<String>,
+    },
+    /// Create an empty entity with a caller-generated stable UUID.
+    CreateEntity {
+        entity_id: String,
+        name: String,
+        #[serde(default)]
+        translation_milli: [i64; 2],
+    },
+    /// Restore an exact engine-created scene backup identified by its content hash.
+    /// This operation is handled by the filesystem-aware CLI/MCP layer, not by `SceneDocument`.
+    RestoreSceneBackup { backup_sha256: String },
+    /// Delete one entity, refusing if it has direct children.
+    DeleteEntity { entity_id: String },
+    /// Remove one component from a selected entity.
+    RemoveEntityComponent {
+        entity_id: String,
+        component_type: String,
+    },
+    /// Add or replace one component using a registered schema and payload.
+    SetEntityComponent {
+        entity_id: String,
+        component_type: String,
+        schema_version: u32,
+        data: BTreeMap<String, Value>,
+    },
 }
 
 /// Strict schema-1 animation clip authored as a project JSON source file.
@@ -952,7 +1090,7 @@ impl AnimationClipFrame {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ComponentRecord {
     #[serde(rename = "type")]
@@ -962,6 +1100,238 @@ pub struct ComponentRecord {
 }
 
 impl SceneDocument {
+    /// Applies one typed authoring operation, serializes it, and revalidates the result.
+    ///
+    /// # Errors
+    ///
+    /// Returns stable diagnostics if the operation selects no entity, produces
+    /// an invalid scene, or exceeds the document size limit.
+    pub fn apply_edit(
+        &self,
+        operation: &SceneEditOperation,
+        file: &str,
+        registry: &ComponentRegistry,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        let mut edited = self.clone();
+        edited.apply_typed_operation(operation, file)?;
+        let bytes = edited.to_json_bytes().map_err(|error| {
+            vec![Diagnostic::new(
+                "HYCEL-SCENE-020",
+                Some(file),
+                "$",
+                format!("cannot serialize scene edit: {error}"),
+            )]
+        })?;
+        Self::parse_json_with_registry(&bytes, file, registry)
+    }
+
+    #[allow(clippy::too_many_lines)] // Keeps typed edit authorization and mutation centralized.
+    fn apply_typed_operation(
+        &mut self,
+        operation: &SceneEditOperation,
+        file: &str,
+    ) -> Result<(), Vec<Diagnostic>> {
+        match operation {
+            SceneEditOperation::CreateScene { .. }
+            | SceneEditOperation::RestoreSceneBackup { .. } => {
+                let (code, message) = if matches!(operation, SceneEditOperation::CreateScene { .. })
+                {
+                    (
+                        "HYCEL-SCENE-025",
+                        "scene creation requires the filesystem-aware authoring service",
+                    )
+                } else {
+                    (
+                        "HYCEL-SCENE-024",
+                        "scene backup restore requires the filesystem-aware authoring service",
+                    )
+                };
+                return Err(vec![Diagnostic::new(
+                    code,
+                    Some(file),
+                    "operation",
+                    message,
+                )]);
+            }
+            SceneEditOperation::RenameScene { name } => self.name.clone_from(name),
+            SceneEditOperation::RenameEntity { entity_id, name } => {
+                find_entity_mut(&mut self.entities, entity_id, file)?
+                    .name
+                    .clone_from(name);
+            }
+            SceneEditOperation::SetEntityTags { entity_id, tags } => {
+                if tags.len() > 64 {
+                    return Err(vec![Diagnostic::new(
+                        "HYCEL-SCENE-026",
+                        Some(file),
+                        "tags",
+                        "an entity may have at most 64 tags per edit",
+                    )]);
+                }
+                let mut seen = BTreeSet::new();
+                for (index, tag) in tags.iter().enumerate() {
+                    if !valid_tag(tag) {
+                        return Err(vec![Diagnostic::new(
+                            "HYCEL-SCENE-026",
+                            Some(file),
+                            format!("tags[{index}]"),
+                            "tag must be a 1–64 character lowercase ASCII identifier",
+                        )]);
+                    }
+                    if !seen.insert(tag.as_str()) {
+                        return Err(vec![Diagnostic::new(
+                            "HYCEL-SCENE-026",
+                            Some(file),
+                            format!("tags[{index}]"),
+                            "duplicate entity tag",
+                        )]);
+                    }
+                }
+                find_entity_mut(&mut self.entities, entity_id, file)?.tags =
+                    Field::Present(tags.clone());
+            }
+            SceneEditOperation::SetEntityTransform {
+                entity_id,
+                translation_milli,
+                rotation_units,
+                scale_milli,
+            } => {
+                if translation_milli.is_none() && rotation_units.is_none() && scale_milli.is_none()
+                {
+                    return Err(vec![Diagnostic::new(
+                        "HYCEL-SCENE-019",
+                        Some(file),
+                        "transform",
+                        "at least one transform channel must be supplied",
+                    )]);
+                }
+                let entity = find_entity_mut(&mut self.entities, entity_id, file)?;
+                if let Some(value) = translation_milli {
+                    entity.transform.translation_milli = *value;
+                }
+                if let Some(value) = rotation_units {
+                    entity.transform.rotation_units = *value;
+                }
+                if let Some(value) = scale_milli {
+                    entity.transform.scale_milli = *value;
+                }
+            }
+            SceneEditOperation::CreateEntity {
+                entity_id,
+                name,
+                translation_milli,
+            } => {
+                if self.entities.iter().any(|entity| entity.id == *entity_id) {
+                    return Err(vec![Diagnostic::new(
+                        "HYCEL-SCENE-021",
+                        Some(file),
+                        "entity_id",
+                        "entity UUID already exists in this scene",
+                    )]);
+                }
+                self.entities.push(SceneEntity {
+                    id: entity_id.clone(),
+                    name: name.clone(),
+                    tags: Field::Present(Vec::new()),
+                    parent: None,
+                    transform: SceneTransform {
+                        translation_milli: *translation_milli,
+                        ..SceneTransform::default()
+                    },
+                    components: Vec::new(),
+                });
+            }
+            SceneEditOperation::DeleteEntity { entity_id } => {
+                self.delete_entity(entity_id, file)?;
+            }
+            SceneEditOperation::RemoveEntityComponent {
+                entity_id,
+                component_type,
+            } => self.remove_entity_component(entity_id, component_type, file)?,
+            SceneEditOperation::SetEntityComponent {
+                entity_id,
+                component_type,
+                schema_version,
+                data,
+            } => {
+                let entity = find_entity_mut(&mut self.entities, entity_id, file)?;
+                let component = ComponentRecord {
+                    component_type: component_type.clone(),
+                    schema_version: *schema_version,
+                    data: data.clone(),
+                };
+                if let Some(existing) = entity
+                    .components
+                    .iter_mut()
+                    .find(|existing| existing.component_type == *component_type)
+                {
+                    *existing = component;
+                } else {
+                    entity.components.push(component);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn delete_entity(&mut self, entity_id: &str, file: &str) -> Result<(), Vec<Diagnostic>> {
+        if self
+            .entities
+            .iter()
+            .any(|entity| entity.parent.as_deref() == Some(entity_id))
+        {
+            return Err(vec![Diagnostic::new(
+                "HYCEL-SCENE-022",
+                Some(file),
+                "entity_id",
+                "entity has child entities; reparent or delete them first",
+            )]);
+        }
+        let Some(index) = self
+            .entities
+            .iter()
+            .position(|entity| entity.id == entity_id)
+        else {
+            return Err(missing_entity_diagnostic(entity_id, file));
+        };
+        self.entities.remove(index);
+        Ok(())
+    }
+
+    fn remove_entity_component(
+        &mut self,
+        entity_id: &str,
+        component_type: &str,
+        file: &str,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let entity = find_entity_mut(&mut self.entities, entity_id, file)?;
+        let Some(index) = entity
+            .components
+            .iter()
+            .position(|component| component.component_type == component_type)
+        else {
+            return Err(vec![Diagnostic::new(
+                "HYCEL-SCENE-023",
+                Some(file),
+                "component_type",
+                "component is not present on the selected entity",
+            )]);
+        };
+        entity.components.remove(index);
+        Ok(())
+    }
+
+    /// Serializes a validated scene as UTF-8 pretty JSON with a trailing newline.
+    ///
+    /// # Errors
+    ///
+    /// Returns a serialization error if an internal field cannot be represented.
+    pub fn to_json_bytes(&self) -> Result<Vec<u8>, serde_json::Error> {
+        let mut bytes = serde_json::to_vec_pretty(self)?;
+        bytes.push(b'\n');
+        Ok(bytes)
+    }
+
     /// Parses strict JSON and validates IDs, values, component bounds, parents,
     /// and hierarchy cycles. `file` is retained in all returned diagnostics.
     /// The default registry accepts no custom component types.
@@ -1283,11 +1653,37 @@ impl SceneDocument {
     }
 }
 
+fn find_entity_mut<'a>(
+    entities: &'a mut [SceneEntity],
+    entity_id: &str,
+    file: &str,
+) -> Result<&'a mut SceneEntity, Vec<Diagnostic>> {
+    entities
+        .iter_mut()
+        .find(|entity| entity.id == entity_id)
+        .ok_or_else(|| missing_entity_diagnostic(entity_id, file))
+}
+
+fn missing_entity_diagnostic(entity_id: &str, file: &str) -> Vec<Diagnostic> {
+    vec![Diagnostic::new(
+        "HYCEL-SCENE-018",
+        Some(file),
+        "entity_id",
+        format!("entity UUID {entity_id:?} was not found"),
+    )]
+}
+
 impl SceneEntity {
     /// Persistent scene UUID.
     #[must_use]
     pub fn id(&self) -> &str {
         &self.id
+    }
+
+    /// Human-readable authored entity name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Entity tags in authored array order.
@@ -1319,6 +1715,14 @@ impl SceneEntity {
 }
 
 impl SceneTransform {
+    const fn is_identity(&self) -> bool {
+        self.translation_milli[0] == 0
+            && self.translation_milli[1] == 0
+            && self.rotation_units == 0
+            && self.scale_milli[0] == 1_000
+            && self.scale_milli[1] == 1_000
+    }
+
     /// Translation in milli-world-units.
     #[must_use]
     pub const fn translation_milli(self) -> [i64; 2] {
@@ -1691,7 +2095,7 @@ fn validate_name(value: &str, path: &str, file: &str, diagnostics: &mut Vec<Diag
 mod tests {
     use super::{
         AnimationClipDocument, ComponentRegistry, MAX_DOCUMENT_BYTES, MAX_MANIFEST_BYTES,
-        ProjectManifest, ResourceDescriptor, ResourceRegistry, SceneDocument,
+        ProjectManifest, ResourceDescriptor, ResourceRegistry, SceneDocument, SceneEditOperation,
         validate_project_documents, validate_relative_project_path,
     };
 
@@ -1733,6 +2137,95 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn typed_entity_tag_edits_validate_schema_bounds_and_preserve_order() {
+        let mut components = ComponentRegistry::default();
+        components
+            .register("hycel.animation", 1, false, ["clip_id"])
+            .unwrap();
+        let scene =
+            SceneDocument::parse_json_with_registry(SCENE, "scenes/first-room.json", &components)
+                .unwrap();
+        let entity_id = scene.entities()[0].id().to_owned();
+        let edited = scene
+            .apply_edit(
+                &SceneEditOperation::SetEntityTags {
+                    entity_id: entity_id.clone(),
+                    tags: vec!["player".to_owned(), "courier".to_owned()],
+                },
+                "scenes/first-room.json",
+                &components,
+            )
+            .unwrap();
+        assert_eq!(edited.entities()[0].tags(), ["player", "courier"]);
+
+        for tags in [
+            vec!["NotLowercase".to_owned()],
+            vec!["player".to_owned(), "player".to_owned()],
+            vec!["player".to_owned(); 65],
+        ] {
+            assert!(
+                scene
+                    .apply_edit(
+                        &SceneEditOperation::SetEntityTags {
+                            entity_id: entity_id.clone(),
+                            tags,
+                        },
+                        "scenes/first-room.json",
+                        &components,
+                    )
+                    .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn scene_deletion_edits_refuse_children_and_remove_registered_components() {
+        let source = include_bytes!("../../../examples/platformer-game/scenes/first-room.json");
+        let mut components = ComponentRegistry::default();
+        components
+            .register("hycel.animation", 1, false, ["clip_id"])
+            .unwrap();
+        let scene =
+            SceneDocument::parse_json_with_registry(source, "scenes/first-room.json", &components)
+                .unwrap();
+        let parent_id = "21000000-0000-4000-8000-000000000001";
+        let removed_component = scene
+            .apply_edit(
+                &SceneEditOperation::RemoveEntityComponent {
+                    entity_id: parent_id.to_owned(),
+                    component_type: "hycel.animation".to_owned(),
+                },
+                "scenes/first-room.json",
+                &components,
+            )
+            .unwrap();
+        assert!(removed_component.entities()[0].components().is_empty());
+
+        let hierarchy = br#"{"schema_version":2,"id":"11000000-0000-4000-8000-000000000001","name":"Hierarchy","entities":[{"id":"21000000-0000-4000-8000-000000000001","name":"Root","tags":[]},{"id":"21000000-0000-4000-8000-000000000002","name":"Child","tags":[],"parent":"21000000-0000-4000-8000-000000000001"}]}"#;
+        let hierarchy = SceneDocument::parse_json(hierarchy, "scenes/hierarchy.json").unwrap();
+        let guarded = hierarchy
+            .apply_edit(
+                &SceneEditOperation::DeleteEntity {
+                    entity_id: parent_id.to_owned(),
+                },
+                "scenes/hierarchy.json",
+                &components,
+            )
+            .unwrap_err();
+        assert_eq!(guarded[0].code, "HYCEL-SCENE-022");
+        let deleted_child = hierarchy
+            .apply_edit(
+                &SceneEditOperation::DeleteEntity {
+                    entity_id: "21000000-0000-4000-8000-000000000002".to_owned(),
+                },
+                "scenes/hierarchy.json",
+                &components,
+            )
+            .unwrap();
+        assert_eq!(deleted_child.entities().len(), 1);
     }
 
     #[test]
@@ -1989,6 +2482,68 @@ mod tests {
             .unwrap_err()[0]
                 .code,
             "HYCEL-RESOURCE-005"
+        );
+    }
+
+    #[test]
+    fn resource_source_edit_is_typed_strict_and_revalidates_paths() {
+        use super::ResourceEditOperation;
+
+        let mut registry = ResourceRegistry::default();
+        registry
+            .register("texture", std::iter::empty::<&str>())
+            .unwrap();
+        let original = ResourceDescriptor::parse_json_with_registry(
+            br#"{"schema_version":1,"id":"30000000-0000-4000-8000-000000000001","kind":"texture","source":"assets/old.rgba","import":{}}"#,
+            "assets/player.hycel.json",
+            &registry,
+        )
+        .unwrap();
+        let edited = original
+            .apply_edit(
+                &ResourceEditOperation::SetSource {
+                    source: "assets/new.rgba".to_owned(),
+                },
+                "assets/player.hycel.json",
+                &registry,
+            )
+            .unwrap();
+        assert_eq!(edited.id(), original.id());
+        assert_eq!(edited.kind(), original.kind());
+        assert_eq!(edited.source(), "assets/new.rgba");
+        assert_eq!(edited.import_settings(), original.import_settings());
+
+        assert_eq!(
+            original
+                .apply_edit(
+                    &ResourceEditOperation::SetSource {
+                        source: "../outside.rgba".to_owned(),
+                    },
+                    "assets/player.hycel.json",
+                    &registry,
+                )
+                .unwrap_err()[0]
+                .code,
+            "HYCEL-RESOURCE-005"
+        );
+        assert!(
+            serde_json::from_str::<ResourceEditOperation>(
+                r#"{"operation":"set_source","source":"assets/new.rgba","unexpected":true}"#
+            )
+            .is_err()
+        );
+        assert_eq!(
+            original
+                .apply_edit(
+                    &ResourceEditOperation::SetSource {
+                        source: "a".repeat(4097),
+                    },
+                    "assets/player.hycel.json",
+                    &registry,
+                )
+                .unwrap_err()[0]
+                .code,
+            "HYCEL-RESOURCE-010"
         );
     }
 

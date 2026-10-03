@@ -2,5 +2,6 @@
 **/target/
 **/build/
 **/.hycel/
+**/node_modules/
 .DS_Store
 *.log

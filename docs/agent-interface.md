@@ -10,11 +10,12 @@ Typical file-native task:
 
 1. Read the target Rust module and the referenced schema guide before editing.
 2. For gameplay code, change the smallest cohesive function in `playable_platformer.rs`; keep simulation decisions tick-driven and presentation-only work (window, GPU, audio) out of authoritative state.
-3. For authored scene/resource changes, edit the strict JSON/TOML under `examples/platformer-game/` and preserve stable IDs/references. See [`project-format.md`](project-format.md), [`scene-format.md`](scene-format.md), and [`input.md`](input.md). The CLI currently validates and inspects authored files; it does not compile or execute project-provided code.
+3. For authored scene/resource changes, edit the strict JSON/TOML under `examples/platformer-game/` and preserve stable IDs/references. See [`project-format.md`](project-format.md), [`scene-format.md`](scene-format.md), and [`input.md`](input.md). The CLI validates/inspects authored files and supports typed scene creation/edit preview/apply plus a narrowly scoped resource-descriptor `set_source` operation; it does not compile or execute project-provided code.
 4. Validate the fixture and run the narrow tests first, then relevant workspace checks:
 
    ```sh
    cargo run -p hycel-cli --locked -- check examples/platformer-game --json
+   cargo run -p hycel-cli --locked -- test examples/platformer-game --json
    cargo test -p hycel-demo --locked --example playable_platformer
    cargo fmt --all -- --check
    cargo clippy --workspace --all-targets --locked -- -D warnings
@@ -33,11 +34,13 @@ A basic agent can read `README.md`, `AGENTS.md`, Rust source, and text project/s
 
 ### Level 2: CLI-native
 
-A tool-using agent can currently call `hycel new`, `hycel check --json`, and `hycel inspect --json`. JSON uses a versioned envelope and stable machine-readable diagnostic codes. Build/run/test/replay commands remain roadmap work.
+A tool-using agent can call `hycel new`, `check`, `inspect`, explicit `run`, named headless `test`, target-specific `replay`, deterministic scene SVG `screenshot`, typed scene `edit` preview/apply including hash-addressed backup restoration, and typed `resource-edit` preview/apply for project-relative source-path changes. JSON uses a versioned envelope and stable machine-readable diagnostic codes. Replay identity is not claimed across targets; SVG output is an authored-scene overview, not a live rendered frame. Experimental `build`/`package` commands produce a current-host bundle for the compiled-in reference game only; project source remains inert and these commands do not establish cross-target support.
 
 ### Level 3: engine-aware
 
-A protocol adapter exposes typed, bounded operations such as list scenes, inspect entity, validate change, run named test, replay input, and capture screenshot. It returns structured results and resource IDs rather than large opaque dumps. Mutations require explicit scope and validation. Read-only inspection is the default.
+`hycel-mcp` exposes shared CLI/project services over MCP 2025-11-25 stdio. It pins and validates one project root, exposes read-only check/inspect/tests/replay/edit-preview tools by default, and only advertises scene/resource writes when launched with `--allow-writes`. Inputs/outputs are bounded, applies require a single-use token bound to the exact preview and preserve/restore backups, and no arbitrary commands or project code are run. Path checks are not race-resistant against concurrent external filesystem mutation. See [`mcp.md`](mcp.md) for the exact subset and limitations.
+
+A keyboard-first native editor prototype is available with `cargo run -p hycel-editor -- <project-path>`; it uses the same services and does not compile project source. See [`editor.md`](editor.md) for controls and incomplete scope.
 
 ## Safety and reliability rules
 
@@ -48,7 +51,7 @@ A protocol adapter exposes typed, bounded operations such as list scenes, inspec
 - Mutations are atomic, diffable, and recoverable; return a change summary.
 - Limit output size and support pagination/filtering for large scenes/logs.
 - Errors are data: stable code, concise message, context, remediation, and optional debug detail.
-- Protocol adapters are replaceable and versioned. Business logic lives in the engine/application services.
+- Protocol adapters are replaceable and versioned. Shared business logic lives in the tested CLI/project services; the MCP crate is a transport adapter only.
 
 ## Current CLI JSON result envelope
 
@@ -69,4 +72,4 @@ A protocol adapter exposes typed, bounded operations such as list scenes, inspec
 }
 ```
 
-This documents the version-1 top-level envelope used by `hycel-cli`; per-command result objects and diagnostic codes are described in [`cli.md`](cli.md). The exact envelope and failure behavior have unit-test coverage. Broader protocol/tool operations remain planned.
+This documents the version-1 top-level envelope used by `hycel-cli`; per-command result objects and diagnostic codes are described in [`cli.md`](cli.md). The exact envelope and failure behavior have unit-test coverage. The official TypeScript SDK smoke and a local Qwen-backed stdio client have exercised bounded flows; full interoperability certification against independent clients remains open.

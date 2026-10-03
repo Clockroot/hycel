@@ -1,0 +1,29 @@
+[package]
+name = "hycel-editor"
+description = "Thin native authoring shell over shared Hycel project services"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "hycel_editor"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hycel-editor"
+path = "src/main.rs"
+
+[dependencies]
+hycel-assets = { path = "../hycel-assets", version = "0.1.0" }
+getrandom.workspace = true
+hycel-cli = { path = "../hycel-cli", version = "0.1.0" }
+hycel-input = { path = "../hycel-input", version = "0.1.0" }
+hycel-platform = { path = "../hycel-platform", version = "0.1.0" }
+hycel-project = { path = "../hycel-project", version = "0.1.0" }
+hycel-render = { path = "../hycel-render", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

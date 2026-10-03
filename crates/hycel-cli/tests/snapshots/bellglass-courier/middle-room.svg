@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<rect width="960" height="540" fill="#101827"/>
+<text x="20" y="30" fill="#f5f7fa" font-family="sans-serif" font-size="18">Brass Moonworks</text>
+<g data-entity="23000000-0000-4000-8000-000000000001" data-layer="4" transform="rotate(0.000 479.730 25.280)">
+<title>Moth Courier</title>
+<rect x="479.709" y="25.242" width="0.042" height="0.076" fill="#f5f7fa" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000002" data-layer="0" transform="rotate(0.000 480.000 25.455)">
+<title>Ground</title>
+<rect x="479.640" y="25.385" width="0.720" height="0.140" fill="#3d5a80" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000003" data-layer="2" transform="rotate(0.000 479.850 25.347)">
+<title>Moonrail Checkpoint</title>
+<rect x="479.832" y="25.326" width="0.036" height="0.042" fill="#edae49" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000007" data-layer="3" transform="rotate(0.000 479.808 25.245)">
+<title>Bell Chime</title>
+<circle cx="479.808" cy="25.245" r="0.014" fill="#4cc9f0" stroke="#ffffff" stroke-width="2"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000004" data-layer="0" transform="rotate(0.000 480.024 25.343)">
+<title>Raised Platform</title>
+<rect x="479.952" y="25.319" width="0.144" height="0.048" fill="#3d5a80" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000005" data-layer="1" transform="rotate(0.000 480.012 25.371)">
+<title>Moonpool</title>
+<rect x="479.985" y="25.322" width="0.054" height="0.098" fill="#d6455d" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000009" data-layer="0" transform="rotate(0.000 480.084 25.294)">
+<title>Clockwork Gust</title>
+<rect x="480.006" y="25.182" width="0.156" height="0.224" fill="#8995a7" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000008" data-layer="0" transform="rotate(0.000 480.150 25.357)">
+<title>Echo Bell Plate</title>
+<rect x="480.125" y="25.346" width="0.050" height="0.022" fill="#8995a7" stroke="#ffffff" stroke-width="1"/>
+</g>
+<g data-entity="23000000-0000-4000-8000-000000000006" data-layer="3" transform="rotate(0.000 480.270 25.210)">
+<title>To the Bellglass Spire</title>
+<rect x="480.252" y="25.000" width="0.036" height="0.420" fill="#2a9d8f" stroke="#ffffff" stroke-width="1"/>
+</g>
+</svg>
