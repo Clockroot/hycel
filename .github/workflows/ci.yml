@@ -73,12 +73,12 @@ jobs:
         run: cargo build --release -p hycel-demo --example playable_platformer --target ${{ matrix.target }} --locked
       - name: Build and package Bellglass Courier for this native target
         run: |
-          cargo run --release --target ${{ matrix.target }} -p hycel-cli --locked -- build examples/bellglass-courier --output target/bellglass-courier --json
-          cargo run --release --target ${{ matrix.target }} -p hycel-cli --locked -- package target/bellglass-courier --output target/bellglass-courier-${{ matrix.target }}.tar --json
+          cargo run --release --target ${{ matrix.target }} -p hycel-cli --locked -- build examples/bellglass-courier --output target/bellglass-courier-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }} --json
+          cargo run --release --target ${{ matrix.target }} -p hycel-cli --locked -- package target/bellglass-courier-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }} --output target/bellglass-courier-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}.tar --json
       - uses: actions/upload-artifact@v7
         with:
           name: bellglass-courier-${{ matrix.target }}
-          path: target/bellglass-courier-${{ matrix.target }}.tar
+          path: target/bellglass-courier-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}.tar
           if-no-files-found: error
           retention-days: 30
       - name: Run CPU performance baseline
