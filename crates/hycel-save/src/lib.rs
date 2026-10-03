@@ -785,7 +785,7 @@ mod tests {
         fs::create_dir_all(store.save_path().parent().unwrap()).unwrap();
         fs::write(store.save_path(), legacy).unwrap();
         let migrated = store.load().unwrap();
-        assert!(migrated.collected_item_ids().is_empty());
+        assert_eq!(migrated.collected_item_ids(), &[] as &[String]);
         let collected = migrated
             .with_collected_item_ids(vec!["00000000-0000-4000-8000-000000000004".to_owned()])
             .unwrap();

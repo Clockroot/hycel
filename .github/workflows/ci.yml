@@ -159,9 +159,9 @@ jobs:
         run: cargo test --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --all-targets --locked
       - name: Build winit beta spike for native target
         run: cargo build --manifest-path spikes/phase-4.1-winit-beta/Cargo.toml --release --target ${{ matrix.target }} --locked
-      - name: Install software Vulkan and Xvfb
+      - name: Install Linux audio and presentation dependencies
         if: runner.os == 'Linux' && matrix.smoke
-        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers libxkbcommon0 libxkbcommon-x11-0 xvfb
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev mesa-vulkan-drivers libxkbcommon0 libxkbcommon-x11-0 xvfb
       - name: Run native window/input/presentation smoke
         if: matrix.smoke
         shell: bash
