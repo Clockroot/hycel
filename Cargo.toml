@@ -11,6 +11,7 @@ members = [
     "crates/hycel-platform",
     "crates/hycel-physics",
     "crates/hycel-render",
+    "crates/hycel-save",
     "crates/hycel-demo",
 ]
 

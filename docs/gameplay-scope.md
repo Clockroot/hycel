@@ -9,7 +9,7 @@ This profile narrows the 1.0 sample game and Phase 5 implementation to a small, 
 - Hazards or simple enemies, at least one collectible/objective, a clear success state, and failure/retry behavior.
 - A checkpoint or level-transition mechanic and a completion/ending state.
 - Basic audio feedback: short sound effects and simple background music. Audio-device absence must not prevent gameplay; audio timing is presentation-only and must not change authoritative simulation state.
-- Persistent, local single-player progress (at minimum stage/checkpoint progress) that survives process restart. Save data is distinct from project/source assets and must be versioned, bounded, validated, and written atomically. Save location, schema, migration, and recovery behavior are deferred to Phase 5.6.
+- Persistent, local single-player progress (at minimum stage/checkpoint progress) that survives process restart. Save data is distinct from project/source assets and must be versioned, bounded, validated, and written atomically. Phase 5.6 selects per-user OS local data storage, strict schema-1 JSON, and one last-known-good backup with explicit recovery; see [ADR 0005](adr/0005-progress-save.md).
 
 ## Explicit exclusions
 
@@ -21,4 +21,4 @@ This profile narrows the 1.0 sample game and Phase 5 implementation to a small, 
 
 ## Implementation ordering
 
-Phase 5 should establish deterministic collision/contact behavior and gameplay actions before implementing the sample loop. Animation/scene transitions follow. The selected audio and save capabilities are included in the sample profile. Kira is selected for Phase 5.5 behind Hycel-owned APIs; persistent-save backend/schema decisions remain open for Phase 5.6 and require separate evidence and tests. Keep all authoritative gameplay and save decisions inspectable through the shared file-native/CLI workflows; do not make the visual editor a prerequisite.
+Phase 5 should establish deterministic collision/contact behavior and gameplay actions before implementing the sample loop. Animation/scene transitions follow. The selected audio and save capabilities are included in the sample profile. Kira is selected for Phase 5.5 behind Hycel-owned APIs. Phase 5.6 uses the `hycel-save` API for stable scene/checkpoint references, not arbitrary object state. Keep all authoritative gameplay and save decisions inspectable through shared file-native/CLI workflows; do not make the visual editor a prerequisite.

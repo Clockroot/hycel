@@ -871,6 +871,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hycel-save"
+version = "0.1.0"
+dependencies = [
+ "atomic-write-file",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "icu_collections"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

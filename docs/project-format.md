@@ -76,6 +76,7 @@ Each persisted envelope has an independent version and unsupported versions fail
 | Component payload | Component-registered | Per component | The component registry accepts only the registered type/version; payload migrations are not yet implemented. |
 | Generated import record | 1 | none supported | Strict, fingerprint-verified metadata under `.hycel/`; see [`asset-pipeline.md`](asset-pipeline.md). |
 | Animation clip JSON | 1 | none supported | Strict bounded authored clip resource; frame durations use simulation ticks and frame textures use stable resource UUIDs. |
+| User progress save JSON | 1 | none supported | Strict, bounded user-local data outside the project; unsupported versions fail closed; see [ADR 0005](adr/0005-progress-save.md). |
 | Asset dependency report | 2 | N/A (derived; regenerate with `inspect`) | Deterministic derived snapshot with scene→resource and animation→texture edges; not authored source of truth. |
 
 Format versions are not interchangeable: changing a scene does not change the manifest, resource, animation clip, replay, component, or generated import-record versions. A migration applies only to the named file format and rejects unknown fields rather than dropping them. Current schema design/strict rejection is defined above, in [`scene-format.md`](scene-format.md), and in [`asset-pipeline.md`](asset-pipeline.md).

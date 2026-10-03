@@ -21,6 +21,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-assets`: bounded source hashing, versioned import fingerprints/records, deterministic cache/reimport decisions, and scene/resource dependency reports including animation-frame texture edges; format decoders and importer execution are not implemented.
 - `hycel-animation`: strict project-authored clip resources, contiguous tick-driven playback, deterministic loop/completion events, and scene transitions applied at explicit tick boundaries; see [`docs/scene-format.md`](docs/scene-format.md).
 - `hycel-audio`: best-effort Kira-backed one-shot effects and looping music with bounded encoded inputs, silent fallback, and bounded asynchronous diagnostics; see [ADR 0004](docs/adr/0004-audio-backend.md).
+- `hycel-save`: strict, bounded per-user progress saves with atomic replacement, one backup, and explicit recovery; see [ADR 0005](docs/adr/0005-progress-save.md).
 - `hycel-cli`: `hycel new`, `check`, and read-only `inspect` foundations with versioned JSON envelopes and stable exit codes.
 - `hycel-demo`: headless Rust platformer-motion prototype exercising fixed ticks, horizontal movement, jumping, and landing. It is a proof of direction, not a stable physics API or rendered game.
 - `hycel-platform`/`hycel-render`: provisional native window and early 2D sprite backend with bounded RGBA uploads, camera/layer/tint support, and a bitmap debug-text overlay. This is not yet integrated with the headless demo or an asset decoder; see [`docs/rendering.md`](docs/rendering.md).
@@ -28,7 +29,7 @@ Game projects should be inspectable and testable without clicking through an edi
 - `hycel-physics`: early Rapier2D adapter with fixed-tick box bodies, bounded fixed-point conversion, and sorted contact transitions; see [`docs/adr/0003-physics-backend.md`](docs/adr/0003-physics-backend.md).
 - CI: format, lint, test, and build across macOS, Linux, and Windows runners.
 - Project and scene schema proposals: [`docs/project-format.md`](docs/project-format.md) and [`docs/scene-format.md`](docs/scene-format.md), with parser implementation in `hycel-project`; asset identity and import contracts are in [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
-- Design and release requirements: [`docs/`](docs/), including the [`gameplay capability profile`](docs/gameplay-scope.md), [`physics backend decision`](docs/adr/0003-physics-backend.md), early [`2D rendering guide`](docs/rendering.md), and [`input binding guide`](docs/input.md).
+- Design and release requirements: [`docs/`](docs/), including the [`gameplay capability profile`](docs/gameplay-scope.md), [`physics backend decision`](docs/adr/0003-physics-backend.md), [`progress save decision`](docs/adr/0005-progress-save.md), early [`2D rendering guide`](docs/rendering.md), and [`input binding guide`](docs/input.md).
 - Product contract: [`docs/product-scope.md`](docs/product-scope.md).
 - Planned OS, CPU, compiler, and GPU-backend matrix: [`docs/support-matrix.md`](docs/support-matrix.md).
 - Engineering, data-integrity, privacy, and dependency rules: [`docs/engineering-contracts.md`](docs/engineering-contracts.md).
